@@ -58,6 +58,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5, DEVICE = 6;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The Recent Apps switcher (the home screen opens it). */
+    static final int RECENTS = 8;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -317,6 +319,7 @@ final class HomeApps {
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         items.add(shortcut(SETTINGS, "settings", Ui.tr("Home Settings"), "settings"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "tv_settings"));
+        items.add(shortcut(RECENTS, "recents", Ui.tr("Recent Apps"), "recents"));
         // HY300 projectors (Hotack, Allwinner H713): keystone and focus live in the maker's settings app, and the
         // stock home screen was the only way to its Miracast receiver. Each shows only where the TV has it.
         // The Amlogic ones (txhd2) carry the HTC app too, but its keystone crashes there (SurfaceFlinger refuses code
@@ -350,6 +353,13 @@ final class HomeApps {
         it.key = pkg;
         it.pkg = pkg;
         it.label = label;
+        return it;
+    }
+
+    /** An open app as a card of the Recent Apps switcher: its TV art, like All Apps. */
+    static Item recentItem(Context c, String pkg, String label) {
+        Item it = app(pkg, label);
+        it.tile = appTile(c, null, pkg, 0);
         return it;
     }
 
