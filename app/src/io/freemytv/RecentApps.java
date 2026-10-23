@@ -172,7 +172,7 @@ final class RecentApps {
         final Card c = cards.get(focus);
         if (c.closing) return;
         final String pkg = c.item.pkg;
-        if (!HomeMode.mayTurnOff(pkg)) return;   // the TV's own pieces stay
+        if (!HomeMode.mayStop(pkg)) return;   // Android's own pieces stay
         c.closing = true;
         c.gone.target = 1;
         new Thread(() -> {

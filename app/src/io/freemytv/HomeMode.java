@@ -192,6 +192,11 @@ final class HomeMode {
     /** Factory and service menus, on any brand ("com.tcl.factory.view", "com.cvte.tv.fac.aging", "mediatek.factorymenu.ui"). */
     private static final Pattern FACTORY = Pattern.compile("(.*\\.)?(factory|factorymenu|facmenu|fac|hkcfac|testpq)(\\..*)?");
 
+    /** Stopping an app (Recent Apps) is harmless where turning it off isn't: only Android's own pieces and factory menus stay. */
+    static boolean mayStop(String pkg) {
+        return !CORE.matcher(pkg).matches() && !FACTORY.matcher(pkg).matches();
+    }
+
     /** Checked before every disable: never the protected list, Amazon's packages, Android's own pieces or a factory menu. */
     static boolean mayTurnOff(String pkg) {
         return !PROTECTED.contains(pkg) && !pkg.startsWith("com.amazon.")
