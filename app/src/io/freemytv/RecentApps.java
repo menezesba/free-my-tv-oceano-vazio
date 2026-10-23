@@ -133,7 +133,7 @@ final class RecentApps {
                 Matcher sz = SIZE.matcher(line);
                 boolean hasActivity = sz.find() && Integer.parseInt(sz.group(1)) > 0;
                 boolean running = alive.contains(name);
-                if (!(hasActivity || running) || name.equals(activity.getPackageName()) || !launchable.containsKey(name) || !seen.add(name)) continue;
+                if (!(hasActivity || running) || name.equals(activity.getPackageName()) || !launchable.containsKey(name) || HomeApps.isHidden(name) || !seen.add(name)) continue;
                 Card c = new Card();
                 c.item = HomeApps.recentItem(activity, name, launchable.get(name));
                 found.add(c);
