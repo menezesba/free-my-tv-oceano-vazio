@@ -150,8 +150,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] cardOpen = new Spring[Recs.MAX_CARDS];
     /** Picks per tab (Prefs.cards()), read when the cards update, not on every frame. */
     private int cardSlots = 3;
-    /** The row scrolls in whole cards: the focused one stays among the first three. */
-    private final Spring cardScroll = new Spring(0.32f, 0.78f, 0);
+    /**
+     * Each card's left edge, in slots (a narrow card and its gap: small numbers, so the spring can come to rest; in
+     * pixels it would shiver below a pixel forever). The row is a loop with the focused card in the middle (see
+     * aimCards); these move with the same spring as cardOpen, so the gaps between the cards stay even while they slide.
+     */
+    private final Spring[] cardX = new Spring[Recs.MAX_CARDS];
     private final RectF[] cardRects = new RectF[Recs.MAX_CARDS];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
     private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote;
@@ -410,6 +414,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < Recs.MAX_CARDS; i++) {
             cardFocus[i] = new Spring(0.32f, 0.78f, 0);
             cardOpen[i] = new Spring(0.32f, 0.78f, i == 0 ? 1 : 0);
+            cardX[i] = new Spring(0.32f, 0.78f, 0);
             cardRects[i] = new RectF();
         }
         setLightButtons(HomeApps.topButtons());
@@ -706,7 +711,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (reorderAnim) tilesMoving |= stepReorder(dt, up);
         boolean statusMoving = step(statusFocus, dt);
         boolean heroMoving = heroFocus.step(dt);
-        boolean topMoving = step(topFocus, dt), cardsMoving = step(cardFocus, dt) | step(cardOpen, dt) | cardScroll.step(dt);
+        boolean topMoving = step(topFocus, dt), cardsMoving = step(cardFocus, dt) | step(cardOpen, dt) | step(cardX, dt);
         if (topMoving) status.invalidate();
         heroMoving |= topMoving | cardsMoving;
         boolean drawerItemsMoving = step(drawerFocus, dt);
@@ -1961,10 +1966,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean topChanged = aim(topFocus, !sheetOpen && zone == Z_TOP ? topIndex : -1, snap);
         heroChanged |= aim(cardFocus, !sheetOpen && zone == Z_CARDS ? cardIndex : -1, snap) | topChanged;
         heroChanged |= aim(cardOpen, cardIndex, snap);
-        float scrollTo = Math.max(0, cardIndex - 2);
-        heroChanged |= cardScroll.target != scrollTo;
-        cardScroll.target = scrollTo;
-        if (snap) cardScroll.snap(scrollTo);
+        heroChanged |= aimCards(snap);
         statusChanged |= topChanged;
         tilesDirty |= snap || tilesChanged;
         statusDirty |= snap || statusChanged;
@@ -3002,16 +3004,43 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         layoutCards();
     }
 
-    /** The cards side by side: the one at cardIndex wide, the others tall, sliding as `cardOpen` moves. */
+    /** The cards at their places (cardX), the one at cardIndex wide, the others tall, as `cardOpen` moves. */
     private void layoutCards() {
         float top = L_CARDS_TOP * k, ch = L_CARD_H * k, g = L_CARD_GAP * k, tall = L_TALL_W * k;
-        float wide = (CONTENT_R - MARGIN) * k - 2 * tall - 2 * g, x = MARGIN * k - cardScroll.value * (tall + g);
+        float wide = (CONTENT_R - MARGIN) * k - 2 * tall - 2 * g;
         for (int i = 0; i < Recs.MAX_CARDS; i++) {
-            float w = Math.max(tall * 0.5f, tall + (wide - tall) * cardOpen[i].value);
+            float w = Math.max(tall * 0.5f, tall + (wide - tall) * cardOpen[i].value), x = cardX[i].value * (tall + g);
             cardRects[i].set(x, top, x + w, top + ch);
             snap(cardRects[i]);
-            x += w + g;
         }
+    }
+
+    /**
+     * Where each card goes: a loop with the focused card in the middle, the one before it on the left and the ones
+     * after it on the right; past the last comes the first again, as in Netflix and Prime Video. With 6 picks, two on
+     * the left and three on the right, the farther ones peeking in at the edges. A card that goes round from one end to
+     * the other jumps there instead of sliding across the row.
+     */
+    private boolean aimCards(boolean snap) {
+        int n = cards.size(), before = Math.max(0, (n - 1) / 2), after = n - 1 - before;
+        float tall = L_TALL_W * k, g = L_CARD_GAP * k, wide = (CONTENT_R - MARGIN) * k - 2 * tall - 2 * g;
+        float middle = MARGIN * k + tall + g;
+        boolean changed = false;
+        for (int i = 0; i < Recs.MAX_CARDS; i++) {
+            float to;
+            if (i >= n) {
+                to = w + tall;   // not a pick now: off screen
+            } else {
+                int s = ((i - cardIndex) % n + n) % n;
+                if (s > after) s -= n;
+                to = s == 0 ? middle : s > 0 ? middle + wide + g + (s - 1) * (tall + g) : middle + s * (tall + g);
+            }
+            float slots = to / (tall + g);
+            changed |= cardX[i].target != slots;
+            cardX[i].target = slots;
+            if (snap || Math.abs(cardX[i].value * (tall + g) - to) > wide + tall) cardX[i].snap(slots);
+        }
+        return changed;
     }
 
     /** The three cards of the current tab (Explore, Movies, Shows) and the background taken from the first one. */
@@ -3019,10 +3048,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         cardSlots = Prefs.cards();
         List<Recs.Pick> list = recs.now(TAB_KIND[tab]);
         if (!samePicks(list, cards)) {
+            boolean first = cards.isEmpty();
             cards = list;
             cardIndex = Math.min(cardIndex, Math.max(0, list.size() - 1));
             if (zone == Z_CARDS && list.isEmpty()) zone = Z_SHELF;
-            retarget(false);   // the wide card and the scroll follow the clamped index, whatever has the focus
+            retarget(first);   // the first time, in place at once (not sliding in from the left)   // the wide card and the scroll follow the clamped index, whatever has the focus
         }
         // This tab's cards, then the first three of the others (what shows at first): switching tabs is quick, and
         // the images stay under Recs's cap in memory.
@@ -3285,15 +3315,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     zone = Z_TOP;
                     topIndex = picksOn() ? tab : 3;
                 } else {
-                    zone = Z_CARDS;
-                    cardIndex = nearest(cardRects, cards.size(), shelf.isEmpty() ? w / 2f : tileRects[shelfIndex].centerX());
+                    zone = Z_CARDS;   // back on the pick you left, in the middle of the row
+                    cardIndex = Math.min(cardIndex, cards.size() - 1);
                 }
                 break;
             case Z_CARDS:
                 if (dx != 0) {
-                    int next = Math.max(0, Math.min(cards.size() - 1, cardIndex + dx));
-                    if (next == cardIndex) return true;
-                    cardIndex = next;
+                    if (cards.size() < 2) return true;
+                    cardIndex = (cardIndex + dx + cards.size()) % cards.size();   // past the last, the first again
                 } else if (dy < 0) {
                     zone = Z_TOP;
                     topIndex = tab;     // as on Apple TV: moving up to the tabs focuses the selected tab
@@ -3312,8 +3341,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     if (cards.isEmpty()) {
                         zone = Z_SHELF;
                     } else {
-                        zone = Z_CARDS;
-                        cardIndex = nearest(cardRects, cards.size(), topRects[topIndex].centerX());
+                        zone = Z_CARDS;   // back on the pick you left, in the middle of the row
+                        cardIndex = Math.min(cardIndex, cards.size() - 1);
                     }
                 } else if (topIndex < 3 && !lightButtons.isEmpty()) {
                     topIndex = 3;   // up from the tabs reaches the corner buttons without walking the row
