@@ -744,11 +744,11 @@ public class SettingsActivity extends Activity {
         }
 
         private String[] picksLabels() {
-            return new String[] {Ui.tr("Picks per tab")};
+            return new String[] {Ui.tr("Picks per tab"), Ui.tr("Recently opened")};
         }
 
         private String[] picksValues() {
-            return new String[] {String.valueOf(Prefs.cards())};
+            return new String[] {String.valueOf(Prefs.cards()), onOff(Prefs.recent())};
         }
 
         private String[] settingValues() {
@@ -1002,6 +1002,8 @@ public class SettingsActivity extends Activity {
                 if (focus == 0) {
                     int n = Prefs.cards() - 3, span = Recs.MAX_CARDS - 3 + 1;
                     Prefs.setCards(3 + (n + dir + span) % span);
+                } else if (focus == 1) {
+                    Prefs.setRecent(!Prefs.recent());
                 }
                 return;
             }
