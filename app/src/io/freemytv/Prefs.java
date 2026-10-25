@@ -105,6 +105,11 @@ final class Prefs {
         version++;
     }
 
+    private static void put(String key, int value) {
+        sp().edit().putInt(key, value).apply();
+        version++;
+    }
+
     private static void put(String key, boolean value) {
         sp().edit().putBoolean(key, value).apply();
         version++;
@@ -128,6 +133,17 @@ final class Prefs {
     }
 
     static void setTemperature(String v) { put("temperature", v); }
+
+    /** Picks per tab on the home screen: 3 (as it always was) up to Recs.MAX_CARDS. */
+    static int cards() {
+        return Math.max(3, Math.min(Recs.MAX_CARDS, sp().getInt("cards", 3)));
+    }
+
+    static void setCards(int n) { put("cards", n); }
+
+    /** Titles opened from the picks come first again, across apps (Recs.opened); off: none are kept. */
+    static boolean recent() { return sp().getBoolean("recent", false); }
+    static void setRecent(boolean on) { put("recent", on); }
 
     /** "auto" (dark from sunset to sunrise), "light", "dark" or "photo" (Bing's photo of the day, dark look). */
     static String theme() {
