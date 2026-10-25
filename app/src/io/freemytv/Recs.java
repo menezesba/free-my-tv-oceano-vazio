@@ -49,7 +49,8 @@ final class Recs {
         String kind;            // "movie" or "tv"
         String title, backdrop, poster, meta = "", app, pkg;   // poster: the portrait image of the narrow cards
         String link;            // opens the title in its app (looked up with Watchmode), or null: the app's home
-        boolean recent;         // a copy of one opened from the picks (Prefs.recent), "Recently opened" first in the meta
+        boolean recent;         // a copy of one opened from the picks (Prefs.recent), `label` first in the meta
+        String label;           // Recently opened: "Recently opened · Netflix" (the app it opens), under a narrow card's title
                                 // (kind APP: an app opened from the home screen; title = its name, no image)
         boolean detailed;
         java.io.File photo;     // one of your own photos (Photos): no title, no caption
@@ -210,7 +211,7 @@ final class Recs {
         Pick kept = copy(p);
         // Its own meta, without "Recently opened": that's put back as it shows.
         String meta = p.meta == null ? "" : p.meta;
-        if (p.recent) meta = meta.contains(" · ") ? meta.substring(meta.indexOf(" · ") + 3) : "";
+        if (p.recent && p.label != null && meta.startsWith(p.label)) meta = meta.substring(p.label.length()).replaceFirst("^ · ", "");
         kept.meta = meta;
         String saved;
         synchronized (recent) {
@@ -242,7 +243,15 @@ final class Recs {
                 if ((kind != null && !kind.equals(p.kind)) || !have.computeIfAbsent(p.pkg, this::installed)) continue;
                 Pick shown = copy(p);
                 shown.recent = true;
-                shown.meta = p.meta == null || p.meta.isEmpty() ? tag : tag + " · " + p.meta;
+                // "Recently opened · Netflix": the app it opens, first (not again at the end); an app's card has its
+                // name as its title.
+                String app = APP.equals(p.kind) ? null : serviceName(p), meta = p.meta == null ? "" : p.meta;
+                if (app != null && !app.isEmpty()) {
+                    if (meta.equals(app)) meta = "";
+                    else if (meta.endsWith(" · " + app)) meta = meta.substring(0, meta.length() - app.length() - 3);
+                }
+                shown.label = app == null || app.isEmpty() ? tag : tag + " · " + app;
+                shown.meta = meta.isEmpty() ? shown.label : shown.label + " · " + meta;
                 out.add(shown);
             }
         }

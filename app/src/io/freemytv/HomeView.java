@@ -3323,10 +3323,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             c.drawText(TextUtils.ellipsize(p.meta, fitPaint, bw, TextUtils.TruncateAt.END).toString(), base.left, base.bottom + 80 * k, lCardMeta);
             lCardMeta.setAlpha(a);
         }
-        // A narrow card shows only its title: why it's there ("Recently opened") goes under it, fading into the whole
-        // meta (which starts with it) as the card widens.
+        // A narrow card shows only its title: why it's there ("Recently opened · Netflix") goes under it, fading into
+        // the whole meta (which starts with it) as the card widens.
         if (open < 0.98f && p.recent) {
-            String why = Ui.tr("Recently opened");
+            String why = p.label != null ? p.label : Ui.tr("Recently opened");
             fitPaint.set(lCardMeta);
             int a = lCardMeta.getAlpha();
             lCardMeta.setAlpha(Math.round(a * (1 - open)));
