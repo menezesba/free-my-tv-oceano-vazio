@@ -401,7 +401,8 @@ final class Recs {
         boolean stale = newKey || p != period || now - listAt > LIST_EVERY || now < listAt || picks.isEmpty()
                 || !listLanguage.equals(Ui.language);
         boolean missing = false;
-        for (Pick pick : wanted()) missing |= !pick.detailed || !hasImage(pick) || needsLink(pick);
+        // An app's card (Recently opened) has no image to fetch.
+        for (Pick pick : wanted()) missing |= !pick.detailed || (pick.backdrop != null && !hasImage(pick)) || needsLink(pick);
         if (!stale && !missing) return;
         keyStamp = stamp;
         fetching = true;
@@ -415,7 +416,7 @@ final class Recs {
                     tried++;
                     try {
                         if (!pick.detailed) fetchDetails(pick);
-                        if (pick.pkg != null) download(pick);
+                        if (pick.pkg != null && pick.backdrop != null) download(pick);
                     } catch (Exception e) {
                         failures++;
                         last = e.getMessage() == null ? e.toString() : e.getMessage();
