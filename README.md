@@ -19,14 +19,14 @@ Open source. Built with Claude Code. One button to undo.
 
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
 - **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
-- **Trending, not sponsored.** Three fresh picks every hour from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
+- **Trending, not sponsored.** Three fresh picks every hour (up to six, in Home Settings) from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
 - **Weather and markets, one press away.** The hour-by-hour forecast (or the next 5 days), sunrise and sunset, and live crypto prices.
 - **What's playing.** Music, a podcast or the radio going on in the background shows on the home screen and the screensaver: the title, the artist and the app, from any app that tells Android what it plays (*Home Settings*, off until you turn it on).
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
 - **A screensaver to match.** Full-screen photos of the picks with a big glass clock. Optionally (*Watch from the screensaver*, in Home Settings), OK opens the title on screen in its app, and any other button just closes it.
 - **Your own photos** (Google TV and Android TV). Send them from your computer (up to 100): the screensaver shows them, and without picks one is the home screen's background each hour.
 - **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
-- **Set up on the TV.** Language, your city, temperature, theme, the weather and prices cards, the forecast's hours or days, which coins, and the apps on the shelf, in Free My TV's own settings.
+- **Set up on the TV.** Language, your city, temperature, theme, how many picks, the weather and prices cards, the forecast's hours or days, which coins, and the apps on the shelf, in Free My TV's own settings.
 - **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
 
 ## Install
@@ -284,7 +284,7 @@ reference (fix them by hand); the others were machine-made, and corrections from
 
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, Watchmode only when you set a `watchmode_key`, and Bing only when you pick the *Photo of the day* theme (for that photo). The *Now Playing widget* reads what apps are playing (title, artist, the app) through a notification listener, the only way Android shares it: Free My TV allows the listener only while the widget is on, never reads a notification with it, and asks Android to unbind it as soon as it connects, so it stays unbound. What's playing never leaves the TV. Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, Watchmode only when you set a `watchmode_key`, Bing only when you pick the *Photo of the day* theme (for that photo), YouTube (youtube.com for the channels' RSS feeds, i.ytimg.com for the thumbnails) only when YouTube or SmartTube is on the TV, and Deezer (api.deezer.com for the charts, cdn-images.dzcdn.net for the covers) only when you pick Music genres in Free My TV's settings. The *Now Playing widget* reads what apps are playing (title, artist, the app) through a notification listener, the only way Android shares it: Free My TV allows the listener only while the widget is on, never reads a notification with it, and asks Android to unbind it as soon as it connects, so it stays unbound. What's playing never leaves the TV. Your settings stay on your computer and your TV.
 
 ## Credits
 
