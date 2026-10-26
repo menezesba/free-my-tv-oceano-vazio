@@ -215,6 +215,10 @@ final class Prefs {
         version++;
     }
 
+    /** Home Assistant's tiles in the drawer (HomeAssistant): off until turned on here, even with a server configured. */
+    static boolean homeAssistant() { return sp().getBoolean("homeAssistant", false); }
+    static void setHomeAssistant(boolean on) { put("homeAssistant", on); }
+
     static boolean quotes() { return sp().getBoolean("quotes", Config.SHOW_CRYPTO); }
     static void setQuotes(boolean on) { put("quotes", on); }
 

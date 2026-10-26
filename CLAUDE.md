@@ -336,6 +336,12 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   button has nothing to open without `launcherx`. Hisense keeps only error logs: `adb shell setprop log.tag.FreeMyTV I`
   before reading `adb logcat -s FreeMyTV`.
   `adb shell input keyevent` doesn't test any of these: injected keys skip the accessibility key filter.
+- Home Assistant buttons (`HomeAssistant`): `home_assistant_url`, `_token` and `_entities` in `config.properties` (the
+  token is theirs and secret, like `tmdb_key`), and Home Settings' *Home Assistant* row, off by default and shown
+  Unavailable (`Capabilities.NEED_HOME_ASSISTANT`) until all three are set. On, the entities are a third group of tiles in
+  the bottom drawer (`HomeApps.HOME_ASSISTANT`), read when it opens and every 30 s while it's open, and OK calls their
+  service (`/api/services`). Only `HomeAssistant.DOMAINS`, at most 8: locks and alarms are never offered. The address
+  goes through `lan_server` in `build.sh`: plain HTTP only to the local network.
 - What's playing (`NowPlaying`) comes from the apps' media sessions, which Android hands only to an allowed notification
   listener. A listener could read every notification, so ours follows Home Settings' *Now Playing widget* (off by
   default): turning it on allows it through ADB (`HomeMode.nowPlayingAccess`, `cmd notification allow_listener`; the

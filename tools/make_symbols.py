@@ -19,6 +19,8 @@ MAP = {
     "chevron_down": ("keyboard_arrow_down", 0), "sunrise": ("wb_twilight", 1), "sunset": ("wb_twilight", 1),
     "live_tv": ("live_tv", 1), "bitcoin": ("currency_bitcoin", 0),
     "keystone": ("settings_overscan", 1), "cast": ("cast", 1),
+    "lightbulb": ("lightbulb", 1), "toggle": ("toggle_on", 1), "fan": ("mode_fan", 1), "blinds": ("blinds", 1),
+    "bolt": ("bolt", 1), "smart_button": ("smart_button", 1),
 }
 
 

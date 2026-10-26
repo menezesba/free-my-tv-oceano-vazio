@@ -22,7 +22,7 @@ final class Capabilities {
 
     /** An option's needs. */
     static final String NEED_ADB = "adb", NEED_REMOTE_BUTTONS = "remote-buttons", NEED_OVERLAY = OVERLAY,
-            NEED_LIVE_TV = "live-tv", NEED_LISTENER = LISTENER;
+            NEED_LIVE_TV = "live-tv", NEED_LISTENER = LISTENER, NEED_HOME_ASSISTANT = "home-assistant";
 
     /** null where this TV has what `need` names; else why not, and what would change it, for the person to read. */
     static String missing(Context c, String need) {
@@ -36,6 +36,9 @@ final class Capabilities {
             case NEED_LISTENER:
                 return !adb(c) ? Ui.tr("Needs Free My TV mode: turn it on in Home Screen.")
                         : refused(c, LISTENER) ? Ui.tr("This TV doesn't let apps see what's playing.") : null;
+            case NEED_HOME_ASSISTANT:
+                return HomeAssistant.configured() ? null
+                        : Ui.tr("Set home_assistant_url, _token and _entities in config.properties (see the README).");
             case NEED_LIVE_TV:
                 return HomeApps.liveTv(c) != null ? null : Ui.tr("This TV has no live TV (antenna or cable) to open.");
             default:
