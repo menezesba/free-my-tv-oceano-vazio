@@ -1723,6 +1723,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** A state or a name changed: the tiles are drawn again (and TalkBack reads the new state). */
     private void homeChanged() {
+        // A cover shows once its class is read, and a garage door or a gate goes: then the tiles themselves change.
+        List<HomeApps.Item> tiles = HomeAssistant.items(getContext());
+        boolean same = tiles.size() == drawerItems.size() - drawerHome;
+        for (int i = 0; same && i < tiles.size(); i++) same = tiles.get(i).key.equals(drawerItems.get(drawerHome + i).key);
+        if (!same) {
+            List<HomeApps.Item> list = new ArrayList<>(drawerItems.subList(0, drawerHome));
+            list.addAll(tiles);
+            setDrawerItems(list);
+        }
         for (int i = drawerHome; i < drawerItems.size(); i++) {
             HomeApps.Item it = drawerItems.get(i);
             if (it.control != null) it.label = it.control.name;

@@ -144,7 +144,7 @@ The first values come from `config.properties`, created by the first build (Goog
 | `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
 | `watchmode_key` | Optional, free [Watchmode](https://api.watchmode.com/) key: a pick opens the title's page in its app | empty |
 | `plex_url` and `plex_token` | Optional, your Plex server's `plex.direct` address and token: its newest titles join the picks and open on their page | empty |
-| `home_assistant_url`, `home_assistant_token`, `home_assistant_entities` | Optional: buttons for your own [Home Assistant](#home-assistant-buttons-optional) in the bottom drawer (Google TV only) | empty |
+| `home_assistant_url`, `home_assistant_entities` | Optional: buttons for your own [Home Assistant](#home-assistant-buttons-optional) in the bottom drawer (Google TV only; the token goes from the computer, not in here) | empty |
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
 | `hide_animation` | Leave cartoons and anime out of the picks | `false` |
@@ -185,11 +185,18 @@ On Google TV and Android TV, the bottom drawer can hold buttons for your own [Ho
 
 ```properties
 home_assistant_url=http://homeassistant.local:8123
-home_assistant_token=     # a long-lived access token: your Home Assistant profile → Security
 home_assistant_entities=light.living_room, scene.movie_night, switch.fan
 ```
 
-Build and install again, then turn on *Home Settings* → *Home Assistant* on the TV: it starts off, even with a server set. A group of buttons joins Inputs and Shortcuts, one per entity (up to 8, in your order), with its name from Home Assistant. OK toggles a light, switch, fan or cover, turns on a scene or script, runs an automation or presses a button; one that is off shows dimmed. Locks and alarms are never offered, since anyone in the room can press a TV remote. The address can be `http://` only on your own network (a private address like `192.168.1.20`, or a `.local`, `.lan` or `.home.arpa` name); anything else needs `https://`. The token goes into the app: a Home Assistant user of its own that isn't an administrator is safest.
+Build and install again: *Home Settings* gets a *Home Assistant* row (only builds with an address have it). Then send the token from the computer, a long-lived access token (in Home Assistant: your profile → Security → Long-lived access tokens):
+
+```bash
+python3 tools/home_assistant.py 192.168.1.50
+```
+
+It asks for the token without showing it, checks it with your server, lists what each entity becomes, and sends it over adb into the app's private files. It never goes into the APK or `config.properties`, since any app on the TV can read an installed APK, and a Home Assistant token reaches every service, locks included. A Home Assistant user of its own that isn't an administrator is still safest. `--forget` takes it off the TV again.
+
+Then turn on *Home Settings* → *Home Assistant* on the TV: it starts off. A group of buttons joins Inputs and Shortcuts, one per entity (up to 8, in your order), with its name from Home Assistant; every tile in the drawer shares one width, so more buttons make them all narrower. OK toggles a light, switch, fan or cover, turns on a scene or script, runs an automation or presses a button; one that is off shows dimmed. Locks, alarms, garage doors, gates and doors (covers of those classes) are never offered, since anyone in the room can press a TV remote. The address can be `http://` only on your own network (a private address like `192.168.1.20`, or a `.local`, `.lan` or `.home.arpa` name); anything else needs `https://`, and redirects aren't followed.
 
 ### Your own photos (optional)
 

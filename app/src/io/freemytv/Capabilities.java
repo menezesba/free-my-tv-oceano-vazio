@@ -37,8 +37,9 @@ final class Capabilities {
                 return !adb(c) ? Ui.tr("Needs Free My TV mode: turn it on in Home Screen.")
                         : refused(c, LISTENER) ? Ui.tr("This TV doesn't let apps see what's playing.") : null;
             case NEED_HOME_ASSISTANT:
-                return HomeAssistant.configured() ? null
-                        : Ui.tr("Set home_assistant_url, _token and _entities in config.properties (see the README).");
+                return !HomeAssistant.hasEntities()
+                        ? Ui.tr("None of home_assistant_entities can be a button (see the README).")
+                        : !HomeAssistant.hasToken(c) ? Ui.tr("Send Home Assistant's token from a computer (see the README).") : null;
             case NEED_LIVE_TV:
                 return HomeApps.liveTv(c) != null ? null : Ui.tr("This TV has no live TV (antenna or cable) to open.");
             default:

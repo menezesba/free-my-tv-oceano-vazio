@@ -209,6 +209,13 @@
             android:authorities="io.freemytv.photos"
             android:exported="true" />
 
+        <!-- tools/home_assistant.py sends Home Assistant's token here, so it's never in the APK; only adb's shell may
+             write (HomeAssistantInbox checks). -->
+        <provider
+            android:name=".HomeAssistantInbox"
+            android:authorities="io.freemytv.homeassistant"
+            android:exported="true" />
+
         <!-- The sleep timer's minutes left over any app, while the timer runs. A process of its own: a foreground
              service in :home would keep the whole home screen in memory under the app in front. -->
         <service

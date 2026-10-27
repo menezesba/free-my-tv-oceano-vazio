@@ -8,12 +8,14 @@ import android.os.Looper;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,10 +25,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Buttons for your own Home Assistant in the bottom drawer (config.properties: home_assistant_url, _token and
- * _entities). Nothing runs until Home Settings › Home Assistant is on: then the drawer reads the entities' states while
- * it is open (when it opens, then every 30 s) and OK calls the entity's service. The only host is the server you name.
- * Locks, alarms and every other domain outside DOMAINS are never offered: anyone in the room can press a TV remote.
+ * Buttons for your own Home Assistant in the bottom drawer. The address and the entities come with the build
+ * (config.properties: home_assistant_url, _entities); the token never does: tools/home_assistant.py sends it over adb
+ * into the app's private files (HomeAssistantInbox), since an APK on the TV can be read by any app on it. Nothing runs
+ * until Home Settings › Home Assistant is on: then the drawer reads the entities' states while it is open (when it
+ * opens, then every 30 s) and OK calls the entity's service. The only host is the server you name. Locks, alarms, garage
+ * doors and gates, and every other domain outside DOMAINS, are never offered: anyone in the room can press a TV remote.
  */
 final class HomeAssistant {
     private HomeAssistant() {}
@@ -39,14 +43,19 @@ final class HomeAssistant {
     /** While the drawer is open, the states are read again this often. */
     static final long REFRESH_MS = 30_000;
 
+    /** Covers that open a way into the house: left out like locks (Home Assistant's cover device classes). */
+    static final List<String> RISKY_COVERS = Collections.unmodifiableList(Arrays.asList("garage", "gate", "door"));
+    /** In the app's private files, written only by HomeAssistantInbox. */
+    static final String TOKEN_FILE = "home-assistant-token";
+
     private static final String SERVER = trimSlash(Config.HA_URL.trim());
-    private static final String TOKEN = Config.HA_TOKEN.trim();
 
     /** One entity from home_assistant_entities. Its name and state change as the server answers. */
     static final class Control {
         final String entity, domain;
         volatile String name;
         volatile String state = "";   // as Home Assistant says it ("on", "off", "open", "unavailable"…); "" = not read
+        volatile String deviceClass;   // a cover's, once read ("" when it has none); null = not read yet
 
         Control(String entity) {
             this.entity = entity;
@@ -76,6 +85,13 @@ final class HomeAssistant {
         boolean unavailable() {
             return state.equals("unavailable");
         }
+
+        /** A tile can be shown: a cover only once its class is known, and never a garage door, a gate or a door. */
+        boolean offered() {
+            if (!domain.equals("cover")) return true;
+            String dc = deviceClass;
+            return dc != null && !RISKY_COVERS.contains(dc);
+        }
     }
 
     private static final List<Control> CONTROLS = parse(Config.HA_ENTITIES);
@@ -88,14 +104,24 @@ final class HomeAssistant {
     private static volatile boolean names, fetching;
     private static volatile long readAt;
 
-    /** A server, a token and at least one entity it can show: without them, nothing here runs. */
-    static boolean configured() {
-        return !SERVER.isEmpty() && !TOKEN.isEmpty() && !CONTROLS.isEmpty();
+    /** Built with an address and entities (Config.HOME_ASSISTANT): only then is there a Home Settings row. */
+    static boolean offered() {
+        return Config.HOME_ASSISTANT && !SERVER.isEmpty();
+    }
+
+    /** At least one entity it can show, out of home_assistant_entities. */
+    static boolean hasEntities() {
+        return !CONTROLS.isEmpty();
+    }
+
+    /** Built with a server and entities, and its token came from a computer: without them, nothing here runs. */
+    static boolean configured(Context c) {
+        return offered() && hasEntities() && hasToken(c);
     }
 
     /** Configured and turned on in Home Settings. */
-    static boolean on() {
-        return configured() && Prefs.homeAssistant();
+    static boolean on(Context c) {
+        return Prefs.homeAssistant() && configured(c);
     }
 
     static List<Control> controls() {
@@ -105,9 +131,11 @@ final class HomeAssistant {
     /** The drawer's tiles, one per entity, with the names last read from the server. */
     static List<HomeApps.Item> items(Context c) {
         List<HomeApps.Item> out = new ArrayList<>();
-        if (!on()) return out;
+        if (!on(c)) return out;
         loadNames(c);
-        for (Control ctl : CONTROLS) out.add(HomeApps.homeAssistant(ctl, symbol(ctl.domain)));
+        for (Control ctl : CONTROLS) {
+            if (ctl.offered()) out.add(HomeApps.homeAssistant(ctl, symbol(ctl.domain)));
+        }
         return out;
     }
 
@@ -127,15 +155,19 @@ final class HomeAssistant {
 
     // MARK: - Reading the states
 
-    /** Reads every entity's state and name, off the main thread; `done` runs on the main thread when they're in. */
+    /**
+     * Reads every entity's state and name (and a cover's class), off the main thread; `done` runs on the main thread
+     * when they're in, and then items() may have changed (a cover shows once its class is known, or goes).
+     */
     static void refresh(Context c, Runnable done) {
-        if (!on() || fetching) return;
+        if (!on(c) || fetching) return;
         fetching = true;
         final Context app = c.getApplicationContext();
         IO.execute(() -> {
             boolean changed = false;
             try {
-                for (Control ctl : CONTROLS) changed |= read(ctl);
+                String token = token(app);
+                for (Control ctl : CONTROLS) changed |= read(ctl, token);
                 readAt = System.currentTimeMillis();
             } catch (IOException e) {
                 AppLog.w("home assistant: " + e.getMessage());
@@ -151,21 +183,28 @@ final class HomeAssistant {
         });
     }
 
-    /** True if the name or the state changed. A missing entity reads as unavailable; any other error stops the round. */
-    private static boolean read(Control ctl) throws IOException {
-        String before = ctl.name + "\n" + ctl.state;
+    /** True if the name, the state or the class changed. A missing entity reads as unavailable; any other error stops the round. */
+    private static boolean read(Control ctl, String token) throws IOException {
+        String before = ctl.name + "\n" + ctl.state + "\n" + ctl.deviceClass;
         try {
-            JSONObject o = new JSONObject(request("GET", "/api/states/" + ctl.entity, null));
+            JSONObject o = new JSONObject(request(token, "GET", "/api/states/" + ctl.entity, null));
             ctl.state = o.optString("state", "");
             JSONObject attributes = o.optJSONObject("attributes");
             String name = attributes == null ? "" : attributes.optString("friendly_name", "").trim();
             if (!name.isEmpty()) ctl.name = name;
+            if (ctl.domain.equals("cover")) {
+                String dc = attributes == null ? "" : attributes.optString("device_class", "").trim().toLowerCase(Locale.ROOT);
+                if (RISKY_COVERS.contains(dc) && !RISKY_COVERS.contains(String.valueOf(ctl.deviceClass))) {
+                    AppLog.w("home assistant: " + ctl.entity + " left out (a " + dc + ")");
+                }
+                ctl.deviceClass = dc;
+            }
         } catch (NotFound e) {
             ctl.state = "unavailable";
         } catch (org.json.JSONException e) {
             throw new IOException("unexpected answer for " + ctl.entity);
         }
-        return !before.equals(ctl.name + "\n" + ctl.state);
+        return !before.equals(ctl.name + "\n" + ctl.state + "\n" + ctl.deviceClass);
     }
 
     /** When the states were last read (0: never, or the server didn't answer). */
@@ -185,16 +224,19 @@ final class HomeAssistant {
      * call failed. `result` runs on the main thread.
      */
     static void activate(Context c, Control ctl, Result result) {
-        if (!on() || ctl.unavailable()) {
+        if (!on(c) || ctl.unavailable() || !ctl.offered()) {
             if (result != null) result.done(false);
             return;
         }
+        final Context app = c.getApplicationContext();
         final String before = ctl.state;
         if (toggles(ctl.domain)) ctl.state = flipped(ctl);
         IO.execute(() -> {
             boolean ok;
+            String token = "";
             try {
-                request("POST", "/api/services/" + service(ctl.domain), "{\"entity_id\":" + JSONObject.quote(ctl.entity) + "}");
+                token = token(app);
+                request(token, "POST", "/api/services/" + service(ctl.domain), "{\"entity_id\":" + JSONObject.quote(ctl.entity) + "}");
                 ok = true;
             } catch (IOException e) {
                 AppLog.w("home assistant: " + ctl.entity + ": " + e.getMessage());
@@ -209,7 +251,7 @@ final class HomeAssistant {
                 // Home Assistant answers before the device has changed: read it once it has.
                 try {
                     Thread.sleep(1200);
-                    read(ctl);
+                    read(ctl, token);
                 } catch (InterruptedException | IOException ignored) {
                 }
                 if (result != null) MAIN.post(() -> result.done(true));
@@ -249,6 +291,28 @@ final class HomeAssistant {
         for (Control ctl : CONTROLS) {
             ctl.state = "";
             ctl.name = fallbackName(ctl.entity);
+            ctl.deviceClass = null;
+        }
+    }
+
+    // MARK: - The token, sent from a computer (tools/home_assistant.py → HomeAssistantInbox)
+
+    static File tokenFile(Context c) {
+        return new File(c.getApplicationContext().getFilesDir(), TOKEN_FILE);
+    }
+
+    static boolean hasToken(Context c) {
+        return tokenFile(c).length() > 0;
+    }
+
+    /** Read at each round, so a token sent (or taken away) while the home screen runs counts at once. Never logged. */
+    private static String token(Context c) throws IOException {
+        try {
+            String t = new String(Files.readAllBytes(tokenFile(c).toPath()), StandardCharsets.UTF_8).trim();
+            if (t.isEmpty()) throw new IOException("no token: send it with tools/home_assistant.py");
+            return t;
+        } catch (java.nio.file.NoSuchFileException e) {
+            throw new IOException("no token: send it with tools/home_assistant.py");
         }
     }
 
@@ -265,12 +329,16 @@ final class HomeAssistant {
         for (Control ctl : CONTROLS) {
             String name = p.getString("name:" + ctl.entity, "");
             if (!name.isEmpty()) ctl.name = name;
+            if (ctl.deviceClass == null) ctl.deviceClass = p.getString("class:" + ctl.entity, null);
         }
     }
 
     private static void saveNames(Context c) {
         SharedPreferences.Editor e = prefs(c).edit();
-        for (Control ctl : CONTROLS) e.putString("name:" + ctl.entity, ctl.name);
+        for (Control ctl : CONTROLS) {
+            e.putString("name:" + ctl.entity, ctl.name);
+            if (ctl.deviceClass != null) e.putString("class:" + ctl.entity, ctl.deviceClass);
+        }
         e.apply();
     }
 
@@ -316,12 +384,14 @@ final class HomeAssistant {
         }
     }
 
-    private static String request(String method, String path, String body) throws IOException {
+    private static String request(String token, String method, String path, String body) throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(SERVER + path).openConnection();
+        // A redirect would carry the token to wherever it points, and past lan_server's check: none is followed.
+        c.setInstanceFollowRedirects(false);
         c.setConnectTimeout(3000);
         c.setReadTimeout(5000);
         c.setRequestMethod(method);
-        c.setRequestProperty("Authorization", "Bearer " + TOKEN);
+        c.setRequestProperty("Authorization", "Bearer " + token);
         c.setRequestProperty("User-Agent", "FreeMyTV");
         try {
             if (body != null) {
@@ -334,6 +404,7 @@ final class HomeAssistant {
             int code = c.getResponseCode();
             if (code == 404) throw new NotFound();
             if (code == 401) throw new IOException("the token was refused (HTTP 401)");
+            if (code >= 300 && code < 400) throw new IOException("HTTP " + code + ": redirects aren't followed");
             if (code != 200 && code != 201) throw new IOException("HTTP " + code);
             try (InputStream in = c.getInputStream()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
