@@ -350,6 +350,7 @@
     focusRows($('citypick'), st.city, st.zone === Z.CITY);
     focusRows($('keypick'), st.key, st.zone === Z.KEY);
     setClass(body, 'drawer-open', st.zone === Z.DRAWER);
+    followSoon();
   }
 
   function focusRows(sheet, index, on) {
@@ -430,14 +431,15 @@
       // Narrow: the poster (the backdrop cropped without one); the wide card fades its backdrop in over it, loaded then.
       var poster = el('div', 'layer', img);
       poster.style.backgroundImage = 'url(' + (p.poster ? Data.image(p.poster, 'w342') : Data.image(p.backdrop, 'w780')) + ')';
-      el('div', 'layer back', img);
+      var back = el('div', 'layer back', img);
+      back.style.backgroundPosition = 'center top';   // the wide card is far wider than the photo: its top stays whole
       el('div', 'name', card, p.title);
       if (p.meta) el('div', 'meta', card, p.meta);
       hover(card, Z.CARDS, c);
     }
     st.card = Math.min(st.card, Math.max(0, list.length - 1));
     if (!list.length && st.zone === Z.CARDS) st.zone = Z.SHELF;
-    backdrop(list.length ? Data.image(list[0].backdrop, 'w300') : '');
+    backdrop(list.length ? Data.image(list[st.card].backdrop, 'w300') : '');
     updateFocus();
   }
 
@@ -465,7 +467,7 @@
 
   var bgUrl = null, bgFront = 'bgA';
 
-  /** The first pick's photo as the background: drawn tiny and stretched, it's already as soft as a heavy blur. */
+  /** The focused pick's photo as the background: drawn tiny and stretched, it's already as soft as a heavy blur. */
   function backdrop(url) {
     if (url === bgUrl) return;
     bgUrl = url;
@@ -486,6 +488,36 @@
     };
     img.src = url;
   }
+
+  // As HomeView's autoNext and bgFollow: the background follows the focused pick, and the picks take turns by themselves
+  // while the remote rests.
+  var AUTO_MS = 8000, BG_FOLLOW_MS = 500, bgTimer = 0;
+
+  /** The focused pick's photo as the background once the focus has rested on it: a quick run along the row fades once. */
+  function followSoon() {
+    clearTimeout(bgTimer);
+    bgTimer = setTimeout(function () {
+      if (cards.length) backdrop(Data.image(cards[Math.min(st.card, cards.length - 1)].backdrop, 'w300'));
+    }, BG_FOLLOW_MS);
+  }
+
+  /**
+   * As on Netflix and Prime Video: after AUTO_MS without a key, the focus on the picks moves on by one (after the last,
+   * the first), and again every AUTO_MS; with the focus elsewhere, the background goes through them. Not during the
+   * screensaver, with the page hidden, or with a sheet or the drawer open.
+   */
+  function autoNext() {
+    var wait = AUTO_MS - (Date.now() - idleAt);
+    if (wait <= 0) {
+      if (cards.length > 1 && !saverOn && !document.hidden && (st.zone === Z.SHELF || st.zone === Z.CARDS || st.zone === Z.TOP)) {
+        st.card = (st.card + 1) % cards.length;
+        updateFocus();
+      }
+      wait = AUTO_MS;
+    }
+    setTimeout(autoNext, wait);
+  }
+  setTimeout(autoNext, AUTO_MS);
 
   function renderClock() {
     var d = new Date(), c = $('clock');
