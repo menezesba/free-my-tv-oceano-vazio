@@ -727,7 +727,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean recentMoving = recents != null && recents.step(dt);
         if (recents != null) {
             if (recents.visible() != (recentLayer.getVisibility() == VISIBLE)) recentLayer.setVisibility(recents.visible() ? VISIBLE : INVISIBLE);
-            if (recentMoving || recents.visible()) recentLayer.invalidate();
+            if (recentMoving) recentLayer.invalidate();   // idle, the cards are drawn once
+            setUnderRecents(recents.covering());
         }
 
         if (drawerMoving || sheetMoving || motionDirty) updateMotion();
@@ -757,10 +758,28 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // Busy: something is moving, or the sheet or the drawer is open.
         boolean busy = tilesMoving || statusMoving || heroMoving || drawerItemsMoving || gridMoving || drawerMoving
                 || sheetMoving || toastFading || heroFading || bgFading || nightMoving || sheetOpen || sheet.value > 0.001f
-                || recentMoving || (recents != null && recents.visible()) || drawerOpen || drawer.value > 0.001f || toast != null || !toasts.isEmpty();
+                || recentMoving || drawerOpen || drawer.value > 0.001f || toast != null || !toasts.isEmpty();
         idle = !busy;
         if (busy) Choreographer.getInstance().postFrameCallback(this);
         else Choreographer.getInstance().postFrameCallbackDelayed(this, 1000);
+    }
+
+    private final int[] underState = new int[8];
+    private boolean underHidden;
+
+    /** Recent Apps covers the screen: the layers below aren't drawn (on slower TVs they cost more than the cards). */
+    private void setUnderRecents(boolean covered) {
+        if (covered == underHidden) return;
+        underHidden = covered;
+        View[] under = {sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer};
+        for (int i = 0; i < under.length; i++) {
+            if (covered) {
+                underState[i] = under[i].getVisibility();
+                under[i].setVisibility(INVISIBLE);
+            } else {
+                under[i].setVisibility(underState[i]);
+            }
+        }
     }
 
     private void wake() {

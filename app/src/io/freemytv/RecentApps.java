@@ -78,6 +78,11 @@ final class RecentApps {
         return open || shown.value > 0.001f;
     }
 
+    /** Opaque over the whole screen: what is below needn't be drawn. */
+    boolean covering() {
+        return open && shown.value > 0.999f && backdrop != null;
+    }
+
     void open() {
         cards.clear();
         focus = 0;
