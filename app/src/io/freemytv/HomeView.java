@@ -215,6 +215,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // Bottom drawer
     private List<HomeApps.Item> drawerItems = new ArrayList<>();
     private int drawerInputs;          // how many leading items are inputs (the rest are shortcuts)
+    private int drawerHome;            // where the Home Assistant tiles start (the list's size without them)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
     private final RectF weatherCard = new RectF(), quotesCard = new RectF();
@@ -479,6 +480,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         okHeld = holdArmed = false;
         Choreographer.getInstance().removeFrameCallback(this);
         handler.removeCallbacks(tick);
+        handler.removeCallbacks(homeTick);
         handler.removeCallbacks(reloadSoon);
         handler.removeCallbacks(bars);
         playing.stop();
@@ -1625,6 +1627,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static List<HomeApps.Item> drawerList(Context c) {
         List<HomeApps.Item> list = HomeApps.allInputs(c);
         list.addAll(HomeApps.drawerShortcuts(c));
+        list.addAll(HomeAssistant.items(c));   // empty unless configured and on in Home Settings
         return list;
     }
 
@@ -1635,8 +1638,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; same && i < list.size(); i++) {
             same = list.get(i).key.equals(drawerItems.get(i).key) && list.get(i).connected == drawerItems.get(i).connected;
         }
+        int home = inputs;
+        while (home < list.size() && list.get(home).kind != HomeApps.HOME_ASSISTANT) home++;
         drawerItems = list;
         drawerInputs = inputs;
+        drawerHome = home;
         if (drawerFocus.length != list.size()) {
             drawerFocus = new Spring[list.size()];
             drawerRects = new RectF[list.size()];
@@ -1655,11 +1661,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         int n = drawerItems.size();
         float left = MARGIN * k, right = CONTENT_R * k;
         float gap = 18 * k, groupGap = 56 * k;
-        int groups = drawerInputs > 0 && drawerInputs < n ? 2 : 1;
+        int groups = Math.max(1, (drawerInputs > 0 ? 1 : 0) + (drawerHome > drawerInputs ? 1 : 0) + (n > drawerHome ? 1 : 0));
         float tw = Math.min(230 * k, (right - left - Math.max(0, n - groups) * gap - (groups - 1) * groupGap) / Math.max(1, n));
         float x = left, top = ROW_TOP * k;
         for (int i = 0; i < n; i++) {
-            if (i == drawerInputs && i > 0) x += groupGap - gap;
+            if ((i == drawerInputs || i == drawerHome) && i > 0) x += groupGap - gap;
             drawerRects[i].set(x, top, x + tw, top + ROW_H * k);
             snap(drawerRects[i]);
             x += tw + gap;
@@ -1691,6 +1697,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawerIndex = shelf.isEmpty() ? 0 : nearest(drawerRects, tileRects[shelfIndex].centerX());
         for (int i = 0; i < drawerFocus.length; i++) drawerFocus[i].snap(i == drawerIndex ? 1 : 0);
         drawerDirty = true;
+        readHome();
     }
 
     private void closeDrawer() {
@@ -1698,7 +1705,48 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawer.target = 0;
         zone = Z_SHELF;
         for (Spring f : drawerFocus) f.snap(0);   // the drawer goes away: its focus doesn't need to animate
+        handler.removeCallbacks(homeTick);
         if (!shelf.isEmpty() && drawerIndex < drawerRects.length) shelfIndex = nearest(tileRects, drawerRects[drawerIndex].centerX());
+    }
+
+    // MARK: - Home Assistant tiles
+
+    /** Reads the tiles' states now and every HomeAssistant.REFRESH_MS while the drawer is open. */
+    private final Runnable homeTick = this::readHome;
+
+    private void readHome() {
+        handler.removeCallbacks(homeTick);
+        if (!running || !drawerOpen || drawerHome >= drawerItems.size()) return;
+        HomeAssistant.refresh(getContext(), this::homeChanged);
+        handler.postDelayed(homeTick, HomeAssistant.REFRESH_MS);
+    }
+
+    /** A state or a name changed: the tiles are drawn again (and TalkBack reads the new state). */
+    private void homeChanged() {
+        // A cover shows once its class is read, and a garage door or a gate goes: then the tiles themselves change.
+        List<HomeApps.Item> tiles = HomeAssistant.items(getContext());
+        boolean same = tiles.size() == drawerItems.size() - drawerHome;
+        for (int i = 0; same && i < tiles.size(); i++) same = tiles.get(i).key.equals(drawerItems.get(drawerHome + i).key);
+        if (!same) {
+            List<HomeApps.Item> list = new ArrayList<>(drawerItems.subList(0, drawerHome));
+            list.addAll(tiles);
+            setDrawerItems(list);
+        }
+        for (int i = drawerHome; i < drawerItems.size(); i++) {
+            HomeApps.Item it = drawerItems.get(i);
+            if (it.control != null) it.label = it.control.name;
+        }
+        drawerDirty = true;
+        wake();
+    }
+
+    private void pressHome(HomeApps.Item it) {
+        if (it.control == null) return;
+        HomeAssistant.activate(getContext(), it.control, ok -> {
+            if (!ok) showToast(Ui.tr("Couldn't reach Home Assistant."));
+            homeChanged();
+        });
+        homeChanged();   // a light shows its new state at once
     }
 
     /** Color for the drawer's text and symbols: dark by day, white at night. */
@@ -1737,7 +1785,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         pricePaint.setColor(drawerInk(0.95f));
         float titleBase = ROW_TITLE * k;
         if (drawerInputs > 0) c.drawText(Ui.tr("Inputs"), drawerRects[0].left + 4 * k, titleBase, rowTitle);
-        if (drawerInputs < drawerItems.size()) c.drawText(Ui.tr("Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
+        if (drawerInputs < drawerHome) c.drawText(Ui.tr("Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
+        if (drawerHome < drawerItems.size()) c.drawText("Home Assistant", drawerRects[drawerHome].left + 4 * k, titleBase, rowTitle);
         int top = -1;
         for (int i = 0; i < drawerItems.size(); i++) if (drawerFocus[i].value > 0.02f && (top < 0 || drawerFocus[i].value > drawerFocus[top].value)) top = i;
         for (int i = 0; i < drawerItems.size(); i++) if (i != top) drawDrawerTile(c, i);
@@ -1766,7 +1815,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setColor(Ui.alpha(WHITE, f));
             c.drawRoundRect(cell, r, r, fill);
         }
-        boolean off = it.kind == HomeApps.INPUT && !it.connected;
+        boolean off = it.kind == HomeApps.INPUT && !it.connected
+                || it.kind == HomeApps.HOME_ASSISTANT && it.control != null && !it.control.on();
         int ink = blend(tone(off ? 0xFF8E8E93 : L_INK, off ? 0x6BFFFFFF : 0xF2FFFFFF), INK, f);
         Symbols.draw(getContext(), c, it.symbol, cx, cell.top + cell.height() * 0.4f, 34 * k * s, ink);
         drawerLabel.setColor(ink);
@@ -2487,6 +2537,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             r = tileRects[shelfIndex];
         }
         click.open();
+        if (it.kind == HomeApps.HOME_ASSISTANT) {
+            pressHome(it);
+            return;
+        }
         if (it.kind == HomeApps.ALL_APPS) {
             openSheet();
             return;
@@ -2917,7 +2971,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private static String label(List<HomeApps.Item> list, int i) {
-        return i >= 0 && i < list.size() && list.get(i).label != null ? list.get(i).label : "";
+        if (i < 0 || i >= list.size() || list.get(i).label == null) return "";
+        HomeApps.Item it = list.get(i);
+        if (it.kind == HomeApps.HOME_ASSISTANT && it.control != null && it.control.hasOnOff()) {
+            return Ui.trf("{name}, {state}", "name", it.label, "state", it.control.on() ? Ui.tr("On") : Ui.tr("Off"));
+        }
+        return it.label;
     }
 
     /** A recommendation: title, details and the app that plays it. */

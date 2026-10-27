@@ -775,9 +775,11 @@ public class SettingsActivity extends Activity {
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
-         *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
+         *  forecast, now playing, Home Assistant (only on builds with its address), quotes, one row per coin, then the TMDB
+         *  key and updates (the last row). */
         private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
-                PLAYING_ROW = 10, QUOTES_ROW = 11, COIN_ROWS = 12;
+                PLAYING_ROW = 10, HOME_ROW = Config.HOME_ASSISTANT ? 11 : -1, QUOTES_ROW = Config.HOME_ASSISTANT ? 12 : 11,
+                COIN_ROWS = QUOTES_ROW + 1;
         /** Home Settings rows on screen at once (what fits above the hints at 1080p); a longer list scrolls. */
         private static final int SETTINGS_VISIBLE = 10;
 
@@ -798,6 +800,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("City"));
             l.add(Ui.tr("Forecast"));
             l.add(Ui.tr("Now Playing widget"));
+            if (HOME_ROW >= 0) l.add("Home Assistant");
             l.add(Ui.tr("Quotes widget"));
             l.add("Bitcoin");
             l.add("Ethereum");
@@ -850,6 +853,7 @@ public class SettingsActivity extends Activity {
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[FORECAST_ROW] = Prefs.forecast().equals("days") ? Ui.tr("Next days") : Ui.tr("Next hours");
             v[PLAYING_ROW] = onOff(Prefs.nowPlaying());
+            if (HOME_ROW >= 0) v[HOME_ROW] = onOff(HomeAssistant.on(getContext()));
             v[QUOTES_ROW] = onOff(Prefs.quotes());
             // No quotes widget, nowhere to show prices: the coins read as off (and stay locked) until it is back on.
             for (int i = COIN_ROWS; i < v.length - 2; i++) v[i] = onOff(Prefs.quotes() && Prefs.coin(i - COIN_ROWS));
@@ -876,7 +880,8 @@ public class SettingsActivity extends Activity {
                 case MAIN:
                     return i == 5 ? Capabilities.NEED_REMOTE_BUTTONS : i == 6 ? Capabilities.NEED_ADB : null;
                 case HOME_SETTINGS:
-                    return pickScroll + i == PLAYING_ROW ? Capabilities.NEED_LISTENER : null;
+                    return pickScroll + i == PLAYING_ROW ? Capabilities.NEED_LISTENER
+                            : pickScroll + i == HOME_ROW ? Capabilities.NEED_HOME_ASSISTANT : null;
                 case POWER: {
                     int id = powerRows()[i];
                     return id == P_WHERE ? Capabilities.NEED_OVERLAY : null;
@@ -1143,6 +1148,10 @@ public class SettingsActivity extends Activity {
                     Prefs.setNowPlaying(!Prefs.nowPlaying());
                     HomeMode.nowPlayingAccess(getContext());
                     break;
+                case HOME_ROW:   // off: what it read is forgotten, and nothing is asked of the server until it's on again
+                    Prefs.setHomeAssistant(!Prefs.homeAssistant());
+                    if (!Prefs.homeAssistant()) HomeAssistant.forget(getContext());
+                    return;
                 case QUOTES_ROW: Prefs.setQuotes(!Prefs.quotes()); break;
                 default:
                     if (row >= keyRow() || !Prefs.quotes()) return;   // the key and Updates act on OK only

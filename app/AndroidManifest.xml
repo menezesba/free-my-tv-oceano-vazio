@@ -96,7 +96,7 @@
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:allowBackup="false"
-        android:usesCleartextTraffic="false">
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- The app's icon opens the settings (switch between Free My TV and the original home screen). -->
         <activity
@@ -207,6 +207,13 @@
         <provider
             android:name=".PhotoInbox"
             android:authorities="io.freemytv.photos"
+            android:exported="true" />
+
+        <!-- tools/home_assistant.py sends Home Assistant's token here, so it's never in the APK; only adb's shell may
+             write (HomeAssistantInbox checks). -->
+        <provider
+            android:name=".HomeAssistantInbox"
+            android:authorities="io.freemytv.homeassistant"
             android:exported="true" />
 
         <!-- The sleep timer's minutes left over any app, while the timer runs. A process of its own: a foreground

@@ -144,6 +144,7 @@ The first values come from `config.properties`, created by the first build (Goog
 | `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
 | `watchmode_key` | Optional, free [Watchmode](https://api.watchmode.com/) key: a pick opens the title's page in its app | empty |
 | `plex_url` and `plex_token` | Optional, your Plex server's `plex.direct` address and token: its newest titles join the picks and open on their page | empty |
+| `home_assistant_url`, `home_assistant_entities` | Optional: buttons for your own [Home Assistant](#home-assistant-buttons-optional) in the bottom drawer (Google TV only; the token goes from the computer, not in here) | empty |
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
 | `hide_animation` | Leave cartoons and anime out of the picks | `false` |
@@ -177,6 +178,25 @@ On LG and Samsung you can also type it on the TV, in *Home Settings* → *TMDB k
 ### Opening a title, not just its app (optional)
 
 With a free [Watchmode](https://api.watchmode.com/) key (`watchmode_key=` in `config.properties`), a pick opens its own page in the streaming app instead of the app's home. The free plan (2,500 credits a month) is enough: each title costs two requests the first time and is remembered after that. It works where the app takes the title's web address (tested: Prime Video and JioHotstar); where it doesn't, the pick just opens the app, as without a key.
+
+### Home Assistant buttons (optional)
+
+On Google TV and Android TV, the bottom drawer can hold buttons for your own [Home Assistant](https://www.home-assistant.io/): a light, a scene for movie night, a fan. In `config.properties`:
+
+```properties
+home_assistant_url=http://homeassistant.local:8123
+home_assistant_entities=light.living_room, scene.movie_night, switch.fan
+```
+
+Build and install again: *Home Settings* gets a *Home Assistant* row (only builds with an address have it). Then send the token from the computer, a long-lived access token (in Home Assistant: your profile → Security → Long-lived access tokens):
+
+```bash
+python3 tools/home_assistant.py 192.168.1.50
+```
+
+It asks for the token without showing it, checks it with your server, lists what each entity becomes, and sends it over adb into the app's private files. It never goes into the APK or `config.properties`, since any app on the TV can read an installed APK, and a Home Assistant token reaches every service, locks included. A Home Assistant user of its own that isn't an administrator is still safest. `--forget` takes it off the TV again.
+
+Then turn on *Home Settings* → *Home Assistant* on the TV: it starts off. A group of buttons joins Inputs and Shortcuts, one per entity (up to 8, in your order), with its name from Home Assistant; every tile in the drawer shares one width, so more buttons make them all narrower. OK toggles a light, switch, fan or cover, turns on a scene or script, runs an automation or presses a button; one that is off shows dimmed. Locks, alarms, garage doors, gates and doors (covers of those classes) are never offered, since anyone in the room can press a TV remote. The address can be `http://` only on your own network (a private address like `192.168.1.20`, or a `.local`, `.lan` or `.home.arpa` name); anything else needs `https://`, and redirects aren't followed.
 
 ### Your own photos (optional)
 
@@ -304,7 +324,7 @@ reference (fix them by hand); the others were machine-made, and corrections from
 
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, Watchmode only when you set a `watchmode_key`, and your Plex server only when you set a `plex_url`. On Google TV and Android TV, the APK from the release asks GitHub (api.github.com) once a week, or when you press *Updates*, for the latest release, and when there's a newer one downloads it from github.com and GitHub's download server (release-assets.githubusercontent.com); a build you made yourself asks only when you press *Updates*. The *Now Playing widget* reads what apps are playing (title, artist, the app) through a notification listener, the only way Android shares it: Free My TV allows the listener only while the widget is on, never reads a notification with it, and asks Android to unbind it as soon as it connects, so it stays unbound. What's playing never leaves the TV. While *Home Settings* → *TMDB key* shows its QR code (5 minutes at most), the TV answers on your home network at that code's address, for one key; the key goes to TMDB only, to check it. Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, Watchmode only when you set a `watchmode_key`, and your Plex server only when you set a `plex_url`. With `home_assistant_url` set and *Home Settings* → *Home Assistant* on, it talks to that server, yours, and to no other: only while the bottom drawer is open, to read the states of the entities you listed and to call the one you press. Turned off, nothing is asked of it, and the names it read are forgotten. On Google TV and Android TV, the APK from the release asks GitHub (api.github.com) once a week, or when you press *Updates*, for the latest release, and when there's a newer one downloads it from github.com and GitHub's download server (release-assets.githubusercontent.com); a build you made yourself asks only when you press *Updates*. The *Now Playing widget* reads what apps are playing (title, artist, the app) through a notification listener, the only way Android shares it: Free My TV allows the listener only while the widget is on, never reads a notification with it, and asks Android to unbind it as soon as it connects, so it stays unbound. What's playing never leaves the TV. While *Home Settings* → *TMDB key* shows its QR code (5 minutes at most), the TV answers on your home network at that code's address, for one key; the key goes to TMDB only, to check it. Your settings stay on your computer and your TV.
 
 ## Credits
 

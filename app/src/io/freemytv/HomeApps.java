@@ -58,6 +58,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5, DEVICE = 6;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** A Home Assistant entity in the drawer (HomeAssistant): OK calls its service, nothing opens. */
+    static final int HOME_ASSISTANT = 8;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -74,6 +76,7 @@ final class HomeApps {
         float logoInk;      // fraction of the logo with ink (thin logos are drawn larger, with the same "weight")
         float logoScale = 1; // size tweak by eye (compact logos need more)
         boolean connected = true;
+        HomeAssistant.Control control;   // HOME_ASSISTANT: the entity it shows and calls
 
         void setTile(Bitmap b) {
             tile = b;
@@ -293,6 +296,13 @@ final class HomeApps {
         it.key = key;
         it.label = label;
         it.symbol = symbol;
+        return it;
+    }
+
+    /** A Home Assistant tile in the drawer, named by the server (HomeAssistant.items). */
+    static Item homeAssistant(HomeAssistant.Control ctl, String symbol) {
+        Item it = shortcut(HOME_ASSISTANT, "ha:" + ctl.entity, ctl.name, symbol);
+        it.control = ctl;
         return it;
     }
 
