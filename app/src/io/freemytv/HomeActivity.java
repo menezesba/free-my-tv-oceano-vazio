@@ -26,6 +26,7 @@ public class HomeActivity extends Activity {
         Watchdog.install(this);
         SleepTimer.listen(this);
         SleepTimer.check(this);
+        if (KeyWatch.ON) HomeMode.ensureRemoteService(this, 3_000);   // its script, if the TV restarted it away
         if (Watchdog.crashedTooOften(this)) {
             // Don't try to draw again: only show a notice while the main process restores the original home screen.
             HomeMode.requestRevertHome(this);

@@ -1034,6 +1034,8 @@ public class SettingsActivity extends Activity {
                     Ui.tr("Netflix button"), Ui.tr("Disney+ button"),
                     Ui.tr("Prime Video button"), Ui.tr("YouTube button"),
                     Ui.tr("Crunchyroll button"), Ui.tr("Google Play button")};
+            if (KeyWatch.ON) return new String[] {Ui.tr("Netflix button"), Ui.tr("YouTube button"),
+                    Ui.tr("Prime Video button"), Ui.tr("TCL Channel button"), Ui.tr("Globoplay button"), Ui.tr("Disney+ button")};
             return new String[] {Ui.tr("Netflix button"), Ui.tr("YouTube button"),
                     Ui.tr("Prime Video button"), Ui.tr("TCL Channel button")};
         }
@@ -1762,11 +1764,11 @@ public class SettingsActivity extends Activity {
                         : RemoteKeys.FORMOVIE ? Ui.tr("The other buttons: the TV itself controls them.")
                         : RemoteKeys.XIAOMI ? Ui.tr("Xiaomi default: the button opens what it always did.")
                         : RemoteKeys.HISENSE ? Ui.tr("Netflix: the TV itself controls that button.")
+                        // The script can't hold a key back: the TV's own app opens first, then the one picked.
+                        : KeyWatch.ON ? Ui.tr("Globoplay, Disney+ and TCL Channel: the TV's own app opens first.")
                         : RemoteKeys.supported() ? Ui.tr("Disney and Globoplay: the TV itself controls those buttons.")
                         : Ui.tr("TCL remote buttons: on this TV they work as always."), LIST_X * k + 30 * k, hy + 38 * k, hint);
-                // No key service on this TV (RemoteKeys.FILTER_SAFE): inside other apps the buttons do nothing.
-                if (!RemoteKeys.FILTER_SAFE) c.drawText(Ui.tr("On this TV they work on Free My TV's home screen only."),
-                        LIST_X * k + 30 * k, hy + 76 * k, hint);
+                // No key service on this TV (RemoteKeys.FILTER_SAFE): KeyWatch's script opens the apps from anywhere.
             }
         }
 
