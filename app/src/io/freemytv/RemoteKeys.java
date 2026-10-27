@@ -79,6 +79,15 @@ final class RemoteKeys {
         int source = e.getSource();
         if ((source & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
                 || (source & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) return false;
+        // TCL's Settings button sends NOTIFICATION, which only Google TV's home app (off in our mode) answers with its
+        // quick settings panel: open ours, over what's playing.
+        if (TCL && e.getKeyCode() == KeyEvent.KEYCODE_NOTIFICATION) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+                AppLog.w("remote key " + e.getKeyCode() + " -> quick panel");
+                c.startActivity(new Intent(c, QuickPanelActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            }
+            return true;
+        }
         int keyCode = e.getKeyCode() == KEY_YOUTUBE_TCL ? Prefs.KEY_YOUTUBE : e.getKeyCode();
         // Sony sends BUTTON_9 for five app buttons (BUTTON_4 for Netflix, BUTTON_8 for Google Play): only the scan code
         // tells them apart.

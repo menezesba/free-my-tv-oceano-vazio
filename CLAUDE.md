@@ -335,6 +335,10 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   opens TV Settings and All Apps opens our own sheet (`Prefs.ALL_APPS`, `HomeActivity.EXTRA_ALL_APPS`); the profile
   button has nothing to open without `launcherx`. Hisense keeps only error logs: `adb shell setprop log.tag.FreeMyTV I`
   before reading `adb logcat -s FreeMyTV`.
+  TCL's Settings button sends `KEYCODE_NOTIFICATION`, which only Google TV's home app (launcherx, off in our mode)
+  answers with its quick settings panel; `RemoteKeys` opens `QuickPanelActivity` instead: our own panel over what's
+  playing (a window on the left, drawn as glass since TVs turn window blur off), whose tiles open the TV's own screens
+  (TCL's Picture and Sound panels through `DISPLAY_SETTINGS` and `VIEW_SOUND_SETTINGS`; TCL Google TV 14 tested).
   `adb shell input keyevent` doesn't test any of these: injected keys skip the accessibility key filter.
 - What's playing (`NowPlaying`) comes from the apps' media sessions, which Android hands only to an allowed notification
   listener. A listener could read every notification, so ours follows Home Settings' *Now Playing widget* (off by

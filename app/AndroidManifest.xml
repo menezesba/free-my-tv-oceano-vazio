@@ -154,6 +154,18 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/FreeMyTV.Home" />
 
+        <!-- The quick settings panel the remote's Settings button opens in Free My TV mode (RemoteKeys), over what's
+             playing: a window on the left of the screen, not the whole screen. -->
+        <activity
+            android:name=".QuickPanelActivity"
+            android:process=":home"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="io.freemytv.panel"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Panel" />
+
         <service
             android:name=".Screensaver"
             android:process=":home"
