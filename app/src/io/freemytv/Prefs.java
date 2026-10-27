@@ -201,6 +201,10 @@ final class Prefs {
     static boolean saverWatch() { return sp().getBoolean("saverWatch", false); }
     static void setSaverWatch(boolean on) { put("saverWatch", on); }
 
+    /** Pressing Home twice in a row opens Recent Apps (off by default: some people press Home twice by habit). */
+    static boolean homeTwice() { return sp().getBoolean("homeTwice", false); }
+    static void setHomeTwice(boolean on) { put("homeTwice", on); }
+
     // MARK: - Widgets and coins
 
     static boolean weather() { return sp().getBoolean("weather", true); }

@@ -774,10 +774,10 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
+        /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, Home twice, weather, city,
          *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
-        private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
-                PLAYING_ROW = 10, QUOTES_ROW = 11, COIN_ROWS = 12;
+        private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, HOME_TWICE_ROW = 7, WEATHER_ROW = 8,
+                CITY_ROW = 9, FORECAST_ROW = 10, PLAYING_ROW = 11, QUOTES_ROW = 12, COIN_ROWS = 13;
         /** Home Settings rows on screen at once (what fits above the hints at 1080p); a longer list scrolls. */
         private static final int SETTINGS_VISIBLE = 10;
 
@@ -794,6 +794,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Navigation sounds"));
             l.add(Ui.tr("Picks"));
             l.add(Ui.tr("Watch from the screensaver"));
+            l.add(Ui.tr("Home twice: Recent Apps"));
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
             l.add(Ui.tr("Forecast"));
@@ -846,6 +847,7 @@ public class SettingsActivity extends Activity {
             v[4] = onOff(Prefs.sounds());
             v[PICKS_ROW] = "›";   // opens its own screen: Picks per tab and Picks from
             v[SAVER_ROW] = onOff(Prefs.saverWatch());
+            v[HOME_TWICE_ROW] = onOff(Prefs.homeTwice());
             v[WEATHER_ROW] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[FORECAST_ROW] = Prefs.forecast().equals("days") ? Ui.tr("Next days") : Ui.tr("Next hours");
@@ -1134,6 +1136,7 @@ public class SettingsActivity extends Activity {
                 case 4: Prefs.setSounds(!Prefs.sounds()); break;
                 case PICKS_ROW: return;
                 case SAVER_ROW: Prefs.setSaverWatch(!Prefs.saverWatch()); break;
+                case HOME_TWICE_ROW: Prefs.setHomeTwice(!Prefs.homeTwice()); break;
                 case WEATHER_ROW: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
                 case FORECAST_ROW:   // both are in memory: nothing to fetch
