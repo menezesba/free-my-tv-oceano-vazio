@@ -2483,6 +2483,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         gridDirty = true;
     }
 
+    /** Home pressed twice (HomeActivity). */
+    void showRecents() {
+        openRecents();
+    }
+
     /** Recent Apps over a blurred copy of the screen (without the copy, over a dark veil). */
     private void openRecents() {
         if (recents == null) {
