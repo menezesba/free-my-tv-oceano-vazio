@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import socket
+import ssl
 import struct
 import sys
 import tempfile
@@ -34,6 +35,11 @@ class Socket:
 
     def __init__(self, ip, port=3000):
         self.sock = socket.create_connection((ip, port), timeout=10)
+        if port == 3001:   # the same API over TLS, with the TV's own certificate
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            self.sock = ctx.wrap_socket(self.sock)
         key = base64.b64encode(os.urandom(16)).decode('ascii')
         self.sock.sendall(('GET / HTTP/1.1\r\nHost: %s:%d\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
                            'Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n' % (ip, port, key)).encode('ascii'))
@@ -108,7 +114,10 @@ def launch_points(ip):
     """The TV's launcher list, pairing first (the TV asks once)."""
     path = key_path(ip)
     key = open(path).read().strip() if os.path.exists(path) else None
-    ws = Socket(ip)
+    try:
+        ws = Socket(ip)
+    except OSError:
+        ws = Socket(ip, 3001)   # newer webOS (a 2024 LG tested) resets plain connections on 3000
     try:
         payload = {'forcePairing': False, 'pairingType': 'PROMPT', 'manifest': MANIFEST}
         if key:
@@ -142,10 +151,15 @@ def fetch_icon(ip, url, folder, app_id):
         return ''
     parts = urllib.parse.urlsplit(url)
     ext = os.path.splitext(parts.path)[1].lower()
-    if parts.scheme != 'http' or parts.hostname != ip or ext not in IMAGE_KINDS:
+    if parts.scheme not in ('http', 'https') or parts.hostname != ip or ext not in IMAGE_KINDS:
         return ''
+    ctx = None
+    if parts.scheme == 'https':   # port 3001 serves them with the TV's own certificate
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
     try:
-        with urllib.request.urlopen(url, timeout=10) as r:
+        with urllib.request.urlopen(url, timeout=10, context=ctx) as r:
             if not r.headers.get('Content-Type', 'image/').startswith('image/'):
                 return ''
             data = r.read()
@@ -165,7 +179,7 @@ def main():
     try:
         points = launch_points(ip)
     except OSError as e:
-        sys.exit('Couldn\'t reach the TV at %s:3000 (%s).' % (ip, e))
+        sys.exit('Couldn\'t reach the TV at %s:3000 or 3001 (%s).' % (ip, e))
 
     # The icons go to a new folder that replaces the old one only once the list is complete.
     folder = tempfile.mkdtemp(prefix='webos-icons-', dir=ROOT)
