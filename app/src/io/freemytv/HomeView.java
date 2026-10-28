@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.BitmapShader;
 import android.graphics.Matrix;
 import android.graphics.BlurMaskFilter;
@@ -260,6 +261,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private TextPaint titlePaint, gridLabel, toastPaint;
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint imagePaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    /** Free My TV Oceano theme wallpaper (kept small enough for Android TV devices). */
+    private Bitmap oceanWallpaper;
     private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadowSoft = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadowDeep = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -374,6 +377,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     HomeView(Activity a) {
         super(a);
         activity = a;
+        try (java.io.InputStream in = a.getAssets().open("ocean-wallpaper.jpg")) {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 2; // 960×540: sharp on TV, modest memory use
+            oceanWallpaper = BitmapFactory.decodeStream(in, null, options);
+        } catch (Exception e) {
+            AppLog.w("Oceano wallpaper unavailable: " + e.getMessage());
+        }
         data = HomeData.get(a);
         recs = Recs.get(a);
         playing = new NowPlaying.Watch(a, this::onPlaying);
@@ -838,8 +848,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void updatePalette() {
-        HomeData.Weather wx = data.weather;
-        Shaders.sky(scene.palette, System.currentTimeMillis(), wx.sunrise, wx.sunset);
+        // Free My TV Oceano: deep-ocean blue, clear marine blue, and a cyan liquid-glass highlight.
+        scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4);
         scene.applyPalette();
     }
 
@@ -3062,6 +3072,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean fading = bgFadeAt != 0;
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
+        // Oceano keeps its chosen ocean wallpaper behind the existing Liquid Glass UI. If the asset is missing,
+        // fall back to the original Free My TV background path without breaking startup.
+        if (oceanWallpaper != null) {
+            imagePaint.setAlpha(255);
+            imagePaint.setColorFilter(v);
+            c.drawBitmap(oceanWallpaper, null, screen, imagePaint);
+            imagePaint.setColorFilter(null);
+            return;
+        }
         if (bgTo == null || (fading && bgFrom == null)) {
             if (lightGradient == null) lightGradient = Ui.gradient(h, 0xFFF5F5F7, 0xFFE2E2E7);
             if (nightGradient == null) nightGradient = Ui.gradient(h, 0xFF1C1C1E, 0xFF0B0B0D);
