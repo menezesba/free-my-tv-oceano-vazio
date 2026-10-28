@@ -1,6 +1,8 @@
 {
  ", selected": ", escolhido",
  ". In use": ". Em uso",
+ "12 hours": "12 horas",
+ "24 hours": "24 horas",
  "24h change": "variação em 24 h",
  "ADB message too large": "mensagem do ADB grande demais",
  "ADB refused the command": "o ADB recusou o comando",
@@ -24,6 +26,7 @@
  "Checking…": "Verificando…",
  "City": "Cidade",
  "Clear": "Céu limpo",
+ "Clock": "Relógio",
  "Cloudy": "Nublado",
  "Connecting…": "Conectando…",
  "Couldn't check Free My TV: {error}": "Não consegui conferir o Free My TV: {error}",

@@ -1,6 +1,8 @@
 {
  ", selected": ", vybráno",
  ". In use": ". Používá se",
+ "12 hours": "12 hodin",
+ "24 hours": "24 hodin",
  "24h change": "změna za 24 h",
  "ADB message too large": "zpráva ADB je příliš velká",
  "ADB refused the command": "ADB odmítlo příkaz",
@@ -24,6 +26,7 @@
  "Checking…": "Kontroluji…",
  "City": "Město",
  "Clear": "Slunečno",
+ "Clock": "Hodiny",
  "Cloudy": "Zataženo",
  "Connecting…": "Připojování…",
  "Couldn't check Free My TV: {error}": "Free My TV se nepodařilo zkontrolovat: {error}",

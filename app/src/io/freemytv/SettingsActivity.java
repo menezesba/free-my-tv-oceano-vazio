@@ -773,11 +773,12 @@ public class SettingsActivity extends Activity {
 
         // MARK: - Home Settings and Remote Buttons
 
-        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
-         *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
-        private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
-                PLAYING_ROW = 10, QUOTES_ROW = 11, COIN_ROWS = 12;
+        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"},
+                CLOCKS = {"auto", "24", "12"};
+        /** Home Settings: language, temperature, theme, clock, my photos, sounds, picks, watch from the screensaver,
+         *  weather, city, forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
+        private static final int CLOCK_ROW = 3, PHOTOS_ROW = 4, PICKS_ROW = 6, SAVER_ROW = 7, WEATHER_ROW = 8,
+                CITY_ROW = 9, FORECAST_ROW = 10, PLAYING_ROW = 11, QUOTES_ROW = 12, COIN_ROWS = 13;
         /** Home Settings rows on screen at once (what fits above the hints at 1080p); a longer list scrolls. */
         private static final int SETTINGS_VISIBLE = 10;
 
@@ -790,6 +791,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Language"));
             l.add(Ui.tr("Temperature"));
             l.add(Ui.tr("Theme"));
+            l.add(Ui.tr("Clock"));
             l.add(Ui.tr("My Photos"));
             l.add(Ui.tr("Navigation sounds"));
             l.add(Ui.tr("Picks"));
@@ -843,7 +845,9 @@ public class SettingsActivity extends Activity {
             int photos = Photos.files(getContext()).size();
             v[PHOTOS_ROW] = photos == 0 ? Ui.tr("photos|None")
                     : Prefs.photos() ? Ui.plural("plural|one:{n} photo|other:{n} photos", photos) : Ui.tr("Off");
-            v[4] = onOff(Prefs.sounds());
+            String clock = Prefs.clockFormat();
+            v[CLOCK_ROW] = clock.equals("24") ? Ui.tr("24 hours") : clock.equals("12") ? Ui.tr("12 hours") : Ui.tr("Automatic");
+            v[5] = onOff(Prefs.sounds());
             v[PICKS_ROW] = "›";   // opens its own screen: Picks per tab and Picks from
             v[SAVER_ROW] = onOff(Prefs.saverWatch());
             v[WEATHER_ROW] = onOff(Prefs.weather());
@@ -1131,7 +1135,12 @@ public class SettingsActivity extends Activity {
                     if (Photos.files(getContext()).isEmpty()) return;
                     Prefs.setPhotos(!Prefs.photos());
                     return;
-                case 4: Prefs.setSounds(!Prefs.sounds()); break;
+                case CLOCK_ROW: {
+                    int at = java.util.Arrays.asList(CLOCKS).indexOf(Prefs.clockFormat());
+                    Prefs.setClockFormat(CLOCKS[(at + dir + CLOCKS.length) % CLOCKS.length]);
+                    break;
+                }
+                case 5: Prefs.setSounds(!Prefs.sounds()); break;
                 case PICKS_ROW: return;
                 case SAVER_ROW: Prefs.setSaverWatch(!Prefs.saverWatch()); break;
                 case WEATHER_ROW: Prefs.setWeather(!Prefs.weather()); break;

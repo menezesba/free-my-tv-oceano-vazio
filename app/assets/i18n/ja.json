@@ -1,6 +1,8 @@
 {
  ", selected": "、選択中",
  ". In use": "。使用中",
+ "12 hours": "12時間",
+ "24 hours": "24時間",
  "24h change": "24時間の変動",
  "ADB message too large": "ADB メッセージが大きすぎます",
  "ADB refused the command": "ADB がコマンドを拒否しました",
@@ -24,6 +26,7 @@
  "Checking…": "確認中…",
  "City": "都市",
  "Clear": "晴れ",
+ "Clock": "時計",
  "Cloudy": "曇り",
  "Connecting…": "接続中…",
  "Couldn't check Free My TV: {error}": "Free My TVを確認できませんでした：{error}",
