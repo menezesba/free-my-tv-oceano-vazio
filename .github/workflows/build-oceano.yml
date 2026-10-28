@@ -1,1 +1,41 @@
 
+name: Build Free My TV Oceano
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-oceano.yml'
+      - 'app/**'
+      - 'build.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Compilar APK
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Guardar arquivos gerados
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-my-tv-oceano-apk
+          path: |
+            **/*.apk
+          if-no-files-found: error
