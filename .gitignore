@@ -14,6 +14,9 @@ out/
 *.wgt
 __pycache__/
 
+# Local build tools (JDK + Android SDK), kept out of git
+.buildtools/
+
 # macOS
 .DS_Store
 tools/.i18n-cache.json

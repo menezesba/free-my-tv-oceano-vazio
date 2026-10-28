@@ -451,14 +451,38 @@ final class Ui {
         }
     }
 
-    /** "21:47" (in 12-hour English, "9:47", like the iPhone in the US). */
+    /** A pattern that is not in the catalogues (the clock's 12/24-hour choice), in the current language. */
+    static synchronized DatePattern fixedPattern(String key, String text) {
+        DatePattern pattern = DATE_PATTERNS.get(key);
+        if (pattern == null) {
+            pattern = new DatePattern(text, locale);
+            DATE_PATTERNS.put(key, pattern);
+        }
+        return pattern;
+    }
+
+    /** "21:47", "9:47" or "9:47 PM", as the person chose in the settings. */
     static String clock(long now) {
+        String format = Prefs.clockFormat();
+        if (format.equals("24")) return fixedPattern("clock24", "HH:mm").format(now);
+        if (format.equals("12")) return fixedPattern("clock12", "h:mm a").format(now);
         return Ui.datePattern("format|h:mm").format(now);
     }
 
-    /** "5:21" (sunrise and sunset; in 12-hour English, "5:21 AM", in 24-hour English, "05:21"). */
+    /** "5:21" (sunrise and sunset; in English, "5:21 AM"), following the clock's 12/24-hour choice. */
     static String time(long at) {
-        return once(Prefs.clock24() ? "time24" : "time", at, () -> Ui.datePattern("format|h:mm a").format(at));
+        String format = Prefs.clockFormat();
+        if (format.equals("24")) return once("time24", at, () -> fixedPattern("clock24", "HH:mm").format(at));
+        if (format.equals("12")) return once("time12", at, () -> fixedPattern("clock12", "h:mm a").format(at));
+        return once("time", at, () -> Ui.datePattern("format|h:mm a").format(at));
+    }
+
+    /** An hourly forecast label ("8 PM", "20"), following the clock's 12/24-hour choice. */
+    static String hour(long at) {
+        String format = Prefs.clockFormat();
+        if (format.equals("24")) return once("hour24", at, () -> fixedPattern("hour24", "HH").format(at));
+        if (format.equals("12")) return once("hour12", at, () -> fixedPattern("hour12", "h a").format(at));
+        return once("hour", at, () -> Ui.datePattern("format|h a").format(at));
     }
 
     private static final HashMap<String, String> FORMATTED = new HashMap<>();
