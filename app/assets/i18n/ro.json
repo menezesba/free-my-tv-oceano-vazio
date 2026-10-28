@@ -1,6 +1,8 @@
 {
  ", selected": ", selectat",
  ". In use": ". În uz",
+ "12 hours": "12 ore",
+ "24 hours": "24 de ore",
  "24h change": "variație în 24 h",
  "ADB message too large": "mesaj ADB prea mare",
  "ADB refused the command": "ADB a refuzat comanda",
@@ -24,6 +26,7 @@
  "Checking…": "Se verifică…",
  "City": "Oraș",
  "Clear": "Însorit",
+ "Clock": "Ceas",
  "Cloudy": "Înnorat",
  "Connecting…": "Se conectează…",
  "Couldn't check Free My TV: {error}": "Nu am putut verifica Free My TV: {error}",

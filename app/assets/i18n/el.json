@@ -1,6 +1,8 @@
 {
  ", selected": ", επιλεγμένο",
  ". In use": ". Σε χρήση",
+ "12 hours": "12 ώρες",
+ "24 hours": "24 ώρες",
  "24h change": "μεταβολή 24 ωρών",
  "ADB message too large": "πολύ μεγάλο μήνυμα ADB",
  "ADB refused the command": "το ADB απέρριψε την εντολή",
@@ -24,6 +26,7 @@
  "Checking…": "Έλεγχος…",
  "City": "Πόλη",
  "Clear": "Ηλιοφάνεια",
+ "Clock": "Ρολόι",
  "Cloudy": "Συννεφιά",
  "Connecting…": "Σύνδεση…",
  "Couldn't check Free My TV: {error}": "Δεν ήταν δυνατός ο έλεγχος του Free My TV: {error}",

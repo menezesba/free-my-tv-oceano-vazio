@@ -1,6 +1,8 @@
 {
  ", selected": ", เลือกอยู่",
  ". In use": ". ใช้งานอยู่",
+ "12 hours": "12 ชั่วโมง",
+ "24 hours": "24 ชั่วโมง",
  "24h change": "เปลี่ยนแปลง 24 ชม.",
  "ADB message too large": "ข้อความ ADB ใหญ่เกินไป",
  "ADB refused the command": "ADB ปฏิเสธคำสั่ง",
@@ -24,6 +26,7 @@
  "Checking…": "กำลังตรวจสอบ…",
  "City": "เมือง",
  "Clear": "ท้องฟ้าแจ่มใส",
+ "Clock": "นาฬิกา",
  "Cloudy": "มีเมฆมาก",
  "Connecting…": "กำลังเชื่อมต่อ…",
  "Couldn't check Free My TV: {error}": "ตรวจสอบ Free My TV ไม่ได้: {error}",

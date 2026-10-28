@@ -1,6 +1,8 @@
 {
  ", selected": ", đã chọn",
  ". In use": ". Đang dùng",
+ "12 hours": "12 giờ",
+ "24 hours": "24 giờ",
  "24h change": "thay đổi 24 giờ",
  "ADB message too large": "tin nhắn ADB quá lớn",
  "ADB refused the command": "ADB đã từ chối lệnh",
@@ -24,6 +26,7 @@
  "Checking…": "Đang kiểm tra…",
  "City": "Thành phố",
  "Clear": "Nắng",
+ "Clock": "Đồng hồ",
  "Cloudy": "Nhiều mây",
  "Connecting…": "Đang kết nối…",
  "Couldn't check Free My TV: {error}": "Không kiểm tra được Free My TV: {error}",

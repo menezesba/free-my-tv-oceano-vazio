@@ -1,6 +1,8 @@
 {
  ", selected": ", seçili",
  ". In use": ". Kullanımda",
+ "12 hours": "12 saat",
+ "24 hours": "24 saat",
  "24h change": "24 saatlik değişim",
  "ADB message too large": "ADB mesajı çok büyük",
  "ADB refused the command": "ADB komutu reddetti",
@@ -24,6 +26,7 @@
  "Checking…": "Denetleniyor…",
  "City": "Şehir",
  "Clear": "Güneşli",
+ "Clock": "Saat",
  "Cloudy": "Bulutlu",
  "Connecting…": "Bağlanıyor…",
  "Couldn't check Free My TV: {error}": "Free My TV denetlenemedi: {error}",

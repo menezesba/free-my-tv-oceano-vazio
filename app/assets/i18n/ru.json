@@ -1,6 +1,8 @@
 {
  ", selected": ", выбрано",
  ". In use": ". Используется",
+ "12 hours": "12 часов",
+ "24 hours": "24 часа",
  "24h change": "изменение за 24 ч",
  "ADB message too large": "слишком большое сообщение ADB",
  "ADB refused the command": "ADB отклонил команду",
@@ -24,6 +26,7 @@
  "Checking…": "Проверка…",
  "City": "Город",
  "Clear": "Ясно",
+ "Clock": "Часы",
  "Cloudy": "Облачно",
  "Connecting…": "Подключение…",
  "Couldn't check Free My TV: {error}": "Не удалось проверить Free My TV: {error}",

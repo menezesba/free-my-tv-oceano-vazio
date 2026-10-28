@@ -1,6 +1,8 @@
 {
  ", selected": ", valittu",
  ". In use": ". Käytössä",
+ "12 hours": "12 tuntia",
+ "24 hours": "24 tuntia",
  "24h change": "muutos 24 h",
  "ADB message too large": "liian suuri ADB-viesti",
  "ADB refused the command": "ADB hylkäsi komennon",
@@ -24,6 +26,7 @@
  "Checking…": "Tarkistetaan…",
  "City": "Kaupunki",
  "Clear": "Aurinkoista",
+ "Clock": "Kello",
  "Cloudy": "Pilvistä",
  "Connecting…": "Yhdistetään…",
  "Couldn't check Free My TV: {error}": "Free My TV:n tarkistus epäonnistui: {error}",
