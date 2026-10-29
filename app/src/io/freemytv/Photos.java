@@ -158,20 +158,22 @@ final class Photos {
         }
         if (want == null) want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
         if (!want.equals(built) && !want.equals(building)) {
-            building = want;
+            // Capture the selected file in an effectively-final local for the worker lambda.
+            final File target = want;
+            building = target;
             worker.execute(() -> {
                 Backdrop b = null;
                 try {
-                    Bitmap src = BitmapFactory.decodeFile(want.getPath());
+                    Bitmap src = BitmapFactory.decodeFile(target.getPath());
                     if (src != null) b = Backdrop.make(src, true, true);
                 } catch (RuntimeException | OutOfMemoryError e) {
-                    AppLog.w("photos: background from " + want.getName() + ": " + e.getMessage());
+                    AppLog.w("photos: background from " + target.getName() + ": " + e.getMessage());
                 }
                 synchronized (Photos.class) {
                     building = null;
                     if (b == null) return;
                     backdrop = b;
-                    built = want;
+                    built = target;
                 }
                 main.post(ready);
             });
