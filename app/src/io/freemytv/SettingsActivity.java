@@ -773,7 +773,8 @@ public class SettingsActivity extends Activity {
 
         // MARK: - Home Settings and Remote Buttons
 
-        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
+        private static final String[] UNITS = {"auto", "C", "F"},
+                THEMES = {"auto", "light", "dark", "ocean", "sunset", "aurora", "galaxy", "graphite"};
         /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
          *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
         private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
@@ -839,7 +840,16 @@ public class SettingsActivity extends Activity {
             String unit = Prefs.temperature();
             v[1] = unit.equals("C") ? "°C" : unit.equals("F") ? "°F" : Ui.tr("unit|Automatic");
             String theme = Prefs.theme();
-            v[2] = theme.equals("light") ? Ui.tr("Light") : theme.equals("dark") ? Ui.tr("Dark") : Ui.tr("Automatic");
+            switch (theme) {
+                case "light": v[2] = Ui.tr("Light"); break;
+                case "dark": v[2] = Ui.tr("Dark"); break;
+                case "ocean": v[2] = "Oceano Azul"; break;
+                case "sunset": v[2] = "Pôr do Sol"; break;
+                case "aurora": v[2] = "Aurora"; break;
+                case "galaxy": v[2] = "Galáxia"; break;
+                case "graphite": v[2] = "Grafite"; break;
+                default: v[2] = Ui.tr("Automatic"); break;
+            }
             int photos = Photos.files(getContext()).size();
             v[PHOTOS_ROW] = photos == 0 ? Ui.tr("photos|None")
                     : Prefs.photos() ? Ui.plural("plural|one:{n} photo|other:{n} photos", photos) : Ui.tr("Off");

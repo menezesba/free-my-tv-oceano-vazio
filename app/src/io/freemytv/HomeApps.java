@@ -724,7 +724,7 @@ final class HomeApps {
     // MARK: - Colored logos (shelf)
 
     /** Bump when the way logos are lifted changes (the ones saved on disk are redone). */
-    private static final int LOGO_VERSION = 3;
+    private static final int LOGO_VERSION = 4;
 
     private static Bitmap shelfLogo(Context c, String key, String pkg, String mode, boolean extract) {
         synchronized (LOGOS) {
@@ -1138,10 +1138,21 @@ final class HomeApps {
             p.setShader(shader);
             canvas.drawRoundRect(x, y, x + size, y + size, size * 0.2237f, size * 0.2237f, p);
         } else {
-            // Legacy icon (a free-form drawing with transparency): smaller, no frame.
+            // Legacy/free-form icons also receive the same rounded-square mask as adaptive icons.
             int s = Math.round(th * 0.46f);
-            icon.setBounds((tw - s) / 2, (th - s) / 2, (tw + s) / 2, (th + s) / 2);
-            icon.draw(canvas);
+            Bitmap layer = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+            Canvas lc = new Canvas(layer);
+            icon.setBounds(0, 0, s, s);
+            icon.draw(lc);
+            int x = Math.round(left + (size - s) / 2f), y = Math.round(top + (size - s) / 2f);
+            BitmapShader shader = new BitmapShader(layer, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setTranslate(x, y);
+            shader.setLocalMatrix(m);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            p.setShader(shader);
+            canvas.drawRoundRect(x, y, x + s, y + s, s * 0.2237f, s * 0.2237f, p);
+            layer.recycle();
         }
         return shrink(b, TILE_W, TILE_H);
     }
