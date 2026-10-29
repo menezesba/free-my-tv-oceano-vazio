@@ -1,6 +1,10 @@
 package io.freemytv;
 
 import android.content.Context;
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
@@ -15,12 +19,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -100,6 +107,14 @@ final class Photos {
         return Prefs.photos() && !files(c).isEmpty();
     }
 
+    /** True when the user picked a fixed image for the home screen (instead of the hourly photo rotation). */
+    static boolean hasSelectedBackground(Context c) {
+        String selected = Prefs.photoBackground();
+        if (selected.isEmpty()) return false;
+        for (File f : files(c)) if (selected.equals(f.getName())) return true;
+        return false;
+    }
+
     /** For the screensaver: the photos as picks (no title, no caption). */
     static List<Recs.Pick> picks(Context c) {
         List<Recs.Pick> out = new ArrayList<>();
@@ -133,7 +148,15 @@ final class Photos {
             return null;
         }
         List<File> list = files(c);
-        File want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
+        // Prefer the photo explicitly chosen in Settings. If it was removed, clear the stale choice and
+        // fall back to the existing hourly rotation so the background never goes blank.
+        String selected = Prefs.photoBackground();
+        File want = null;
+        if (!selected.isEmpty()) {
+            for (File f : list) if (selected.equals(f.getName())) { want = f; break; }
+            if (want == null) Prefs.setPhotoBackground("");
+        }
+        if (want == null) want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
         if (!want.equals(built) && !want.equals(building)) {
             building = want;
             worker.execute(() -> {
@@ -154,6 +177,71 @@ final class Photos {
             });
         }
         return backdrop;
+    }
+
+    // MARK: - Importing directly from Android's document picker
+
+    /**
+     * Copies a photo selected in the Android document picker into our private inbox and imports it.
+     * This avoids asking the user to browse Android/data or grant broad storage access. The imported
+     * photo becomes the fixed home wallpaper immediately; existing screensaver behavior is preserved.
+     */
+    static void importUri(Context c, Uri uri, Runnable done, Consumer<String> failed) {
+        Context app = c.getApplicationContext();
+        worker.execute(() -> {
+            File queued = null;
+            try {
+                ContentResolver resolver = app.getContentResolver();
+                String mime = resolver.getType(uri);
+                String ext = extension(mime, displayName(resolver, uri));
+                File inbox = privateInbox(app);
+                if (!inbox.isDirectory() && !inbox.mkdirs()) throw new IOException("Cannot create photo inbox");
+                queued = new File(inbox, "picker-" + UUID.randomUUID().toString() + ext);
+                try (InputStream in = resolver.openInputStream(uri); OutputStream out = new FileOutputStream(queued)) {
+                    if (in == null) throw new IOException("Cannot open selected image");
+                    byte[] buffer = new byte[32 * 1024];
+                    int n;
+                    while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+                }
+                int imported = importNow(app);
+                if (imported <= 0) throw new IOException("The image could not be imported. Try a larger JPG or PNG image.");
+                synchronized (Photos.class) { listedStamp = -1; }
+                List<File> all = files(app);
+                File newest = all.isEmpty() ? null : all.get(all.size() - 1);
+                if (newest == null) throw new IOException("The image was imported but could not be found");
+                Prefs.setPhotoBackground(newest.getName());
+                Prefs.setPhotos(true);
+                main.post(() -> { if (done != null) done.run(); });
+            } catch (Exception e) {
+                if (queued != null) queued.delete();
+                String message = e.getMessage() == null ? "Could not import this image" : e.getMessage();
+                AppLog.w("photos: document picker: " + message);
+                main.post(() -> { if (failed != null) failed.accept(message); });
+            }
+        });
+    }
+
+    private static String displayName(ContentResolver resolver, Uri uri) {
+        try (Cursor cursor = resolver.query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) return cursor.getString(0);
+        } catch (RuntimeException e) {
+            AppLog.w("photos: display name: " + e.getMessage());
+        }
+        return "";
+    }
+
+    private static String extension(String mime, String name) {
+        String n = name == null ? "" : name.toLowerCase(Locale.ROOT);
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return ".jpg";
+        if (n.endsWith(".png")) return ".png";
+        if (n.endsWith(".webp")) return ".webp";
+        if (n.endsWith(".heic")) return ".heic";
+        if (n.endsWith(".heif")) return ".heif";
+        if ("image/png".equalsIgnoreCase(mime)) return ".png";
+        if ("image/webp".equalsIgnoreCase(mime)) return ".webp";
+        if ("image/heic".equalsIgnoreCase(mime)) return ".heic";
+        if ("image/heif".equalsIgnoreCase(mime)) return ".heif";
+        return ".jpg";
     }
 
     // MARK: - Importing what the computer sent
@@ -279,7 +367,9 @@ final class Photos {
         synchronized (Photos.class) {
             backdrop = null;
             built = null;
+            listedStamp = -1;
         }
+        Prefs.setPhotoBackground("");
     }
 
     private static boolean image(String name) {

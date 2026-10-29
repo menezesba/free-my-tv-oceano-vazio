@@ -174,14 +174,10 @@ final class Prefs {
         put("servicesOff", list.length() > 1 ? list.substring(1, list.length() - 1) : "");
     }
 
-    /** Theme palette: automatic, light/dark, or one of the Oceano color themes. */
+    /** "auto" (dark from sunset to sunrise), "light" or "dark". */
     static String theme() {
         String v = sp().getString("theme", Config.THEME.trim());
-        switch (v) {
-            case "light": case "dark": case "ocean": case "sunset": case "aurora":
-            case "galaxy": case "graphite": return v;
-            default: return "auto";
-        }
+        return v.equals("light") || v.equals("dark") ? v : "auto";
     }
 
     static void setTheme(String v) { put("theme", v); }
@@ -225,6 +221,9 @@ final class Prefs {
     /** Your photos (Photos, sent from a computer) on the screensaver and behind the home screen, once imported. */
     static boolean photos() { return sp().getBoolean("photos", true); }
     static void setPhotos(boolean on) { put("photos", on); }
+    /** File name of the user's explicitly selected home wallpaper; empty means rotate imported photos. */
+    static String photoBackground() { return sp().getString("photoBackground", ""); }
+    static void setPhotoBackground(String name) { put("photoBackground", name == null ? "" : name); }
 
     static boolean coin(int i) { return sp().getBoolean("coin" + i, true); }
     static void setCoin(int i, boolean on) { put("coin" + i, on); }

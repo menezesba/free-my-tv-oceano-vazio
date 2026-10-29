@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -50,6 +51,7 @@ import java.util.Set;
  * (HomeMode) and this screen only asks for it and follows the state file.
  */
 public class SettingsActivity extends Activity {
+    private static final int REQUEST_WALLPAPER_IMAGE = 7041;
     private SettingsView view;
     private DreamView preview;   // "Screensaver": the screensaver right here, without changing the system setting
 
@@ -106,6 +108,38 @@ public class SettingsActivity extends Activity {
     @Override protected void onDestroy() {
         if (view != null) view.stopKeyPage();
         super.onDestroy();
+    }
+
+    /** Opens Android's own document picker so the user never has to browse protected app folders. */
+    private void chooseWallpaperImage() {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("image/*");
+        pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivityForResult(Intent.createChooser(pick, "Choose wallpaper"), REQUEST_WALLPAPER_IMAGE);
+        } catch (android.content.ActivityNotFoundException e) {
+            // Some Android TV builds omit DocumentsUI but still provide a content picker via a file manager.
+            try {
+                Intent fallback = new Intent(Intent.ACTION_GET_CONTENT);
+                fallback.setType("image/*");
+                fallback.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(Intent.createChooser(fallback, "Choose wallpaper"), REQUEST_WALLPAPER_IMAGE);
+            } catch (android.content.ActivityNotFoundException missing) {
+                Toast.makeText(this, "No image picker is available on this TV. Install a file manager that can open images.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_WALLPAPER_IMAGE || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        Toast.makeText(this, "Importing wallpaper…", Toast.LENGTH_SHORT).show();
+        Photos.importUri(this, uri, () -> {
+            Toast.makeText(this, "Wallpaper saved and selected", Toast.LENGTH_LONG).show();
+            if (view != null) view.photoImportFinished();
+        }, error -> Toast.makeText(this, "Could not use this image: " + error, Toast.LENGTH_LONG).show());
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
@@ -773,8 +807,7 @@ public class SettingsActivity extends Activity {
 
         // MARK: - Home Settings and Remote Buttons
 
-        private static final String[] UNITS = {"auto", "C", "F"},
-                THEMES = {"auto", "light", "dark", "ocean", "sunset", "aurora", "galaxy", "graphite"};
+        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
          *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
         private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
@@ -840,16 +873,7 @@ public class SettingsActivity extends Activity {
             String unit = Prefs.temperature();
             v[1] = unit.equals("C") ? "°C" : unit.equals("F") ? "°F" : Ui.tr("unit|Automatic");
             String theme = Prefs.theme();
-            switch (theme) {
-                case "light": v[2] = Ui.tr("Light"); break;
-                case "dark": v[2] = Ui.tr("Dark"); break;
-                case "ocean": v[2] = "Oceano Azul"; break;
-                case "sunset": v[2] = "Pôr do Sol"; break;
-                case "aurora": v[2] = "Aurora"; break;
-                case "galaxy": v[2] = "Galáxia"; break;
-                case "graphite": v[2] = "Grafite"; break;
-                default: v[2] = Ui.tr("Automatic"); break;
-            }
+            v[2] = theme.equals("light") ? Ui.tr("Light") : theme.equals("dark") ? Ui.tr("Dark") : Ui.tr("Automatic");
             int photos = Photos.files(getContext()).size();
             v[PHOTOS_ROW] = photos == 0 ? Ui.tr("photos|None")
                     : Prefs.photos() ? Ui.plural("plural|one:{n} photo|other:{n} photos", photos) : Ui.tr("Off");
@@ -1477,6 +1501,17 @@ public class SettingsActivity extends Activity {
 
         // MARK: - My Photos (sent from a computer: tools/photos.py)
 
+        void photoImportFinished() {
+            invalidate();
+            spoken.focusMoved();
+            HomeData.get(getContext()).settingsChanged();
+        }
+
+        /** OK on My Photos: open Android's picker, then import and select that image as the wallpaper. */
+        private void chooseWallpaper() {
+            activity.chooseWallpaperImage();
+        }
+
         /** OK on My Photos: asks, then deletes them all. */
         private void askRemovePhotos() {
             int n = Photos.files(getContext()).size();
@@ -1825,7 +1860,7 @@ public class SettingsActivity extends Activity {
                 askCity();
                 return;
             } else if (screen == HOME_SETTINGS && pickScroll + focus == PHOTOS_ROW) {
-                askRemovePhotos();
+                chooseWallpaper();
                 return;
             } else if (screen == HOME_SETTINGS && pickScroll + focus == updatesRow()) {
                 updateNow();

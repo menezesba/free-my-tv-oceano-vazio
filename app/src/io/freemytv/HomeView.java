@@ -848,21 +848,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void updatePalette() {
-        // Oceano themes recolor the Liquid Glass surfaces while preserving the same layout.
-        switch (Prefs.theme()) {
-            case "sunset":  scene.palette.set(0xFF401B42, 0xFFB74762, 0xFFFFB36B); break;
-            case "aurora":  scene.palette.set(0xFF092E3A, 0xFF147D78, 0xFF8AF5C8); break;
-            case "galaxy":  scene.palette.set(0xFF170E3D, 0xFF5636A6, 0xFFB8A0FF); break;
-            case "graphite":scene.palette.set(0xFF171A20, 0xFF454B55, 0xFFD6DCE5); break;
-            case "light":   scene.palette.set(0xFF233D65, 0xFF4B84B8, 0xFF83D9F4); break;
-            case "dark":    scene.palette.set(0xFF101820, 0xFF253B4C, 0xFF6BC7E8); break;
-            case "auto":
-                if (night > 0.5f) scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4);
-                else scene.palette.set(0xFF173C65, 0xFF238AC0, 0xFF79E6F5);
-                break;
-            case "ocean":
-            default:        scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4); break;
-        }
+        // Free My TV Oceano: deep-ocean blue, clear marine blue, and a cyan liquid-glass highlight.
+        scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4);
         scene.applyPalette();
     }
 
@@ -3056,7 +3043,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             for (int i = 0; i < Math.min(3, other.size()); i++) recs.backdrop(other.get(i));
         }
         // Picks bring their own background; without them (no TMDB key), your photo if there is one.
-        boolean own = !picksOn() && Photos.on(getContext());
+        boolean own = Photos.on(getContext()) && (!picksOn() || Photos.hasSelectedBackground(getContext()));
         Backdrop b = own ? Photos.backdrop(getContext(), ownReady) : cards.isEmpty() ? null : recs.backdrop(cards.get(0));
         if (b != null || (cards.isEmpty() && !own)) showBackdrop(b);
         heroDirty = true;
