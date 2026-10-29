@@ -182,6 +182,14 @@ final class Prefs {
 
     static void setTheme(String v) { put("theme", v); }
 
+    /** The translucent glass color palette. */
+    static String glassTheme() {
+        String v = sp().getString("glassTheme", "ocean");
+        return v.equals("aurora") || v.equals("emerald") || v.equals("amethyst") || v.equals("sunset") ? v : "ocean";
+    }
+
+    static void setGlassTheme(String v) { put("glassTheme", v); }
+
     // MARK: - City
 
     static String city() { return sp().getString("city", Place.city()).trim(); }

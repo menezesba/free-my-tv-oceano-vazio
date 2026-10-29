@@ -848,9 +848,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void updatePalette() {
-        // Free My TV Oceano: deep-ocean blue, clear marine blue, and a cyan liquid-glass highlight.
-        scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4);
+        // Keep the animated background and the translucent glass in the same color family.
+        switch (Prefs.glassTheme()) {
+            case "aurora": scene.palette.set(0xFF182044, 0xFF6552B8, 0xFF9AE8E0); break;
+            case "emerald": scene.palette.set(0xFF082A27, 0xFF167B65, 0xFF80E2B5); break;
+            case "amethyst": scene.palette.set(0xFF28143D, 0xFF7544B4, 0xFFE4A3F4); break;
+            case "sunset": scene.palette.set(0xFF3A1932, 0xFFCF5961, 0xFFFFC27D); break;
+            default: scene.palette.set(0xFF061A43, 0xFF087AB8, 0xFF35D4F4); break;
+        }
         scene.applyPalette();
+    }
+
+    /** A subtle tint from the selected palette keeps the glass translucent while giving it a distinct color. */
+    private int glassTint(int neutral) {
+        return blend(neutral, scene.palette.color(2), 0.28f);
     }
 
     // MARK: - Recommendations: hero and background
@@ -1286,7 +1297,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         shadow.setColor(tone(0x1F000000, 0x52000000));
         shadows.draw(c, tmp, radius, SHADOW_BLUR * k, shadow);
         // White glass by day; smoked glass at night.
-        scene.liquid(c, platterRect, radius, tone(0xFFFFFFFF, SMOKE), tone(0.42f, 0.12f), tone(0.03f, 0.08f),
+        scene.liquid(c, platterRect, radius, tone(glassTint(0xFFFFFFFF), glassTint(SMOKE)), tone(0.42f, 0.12f), tone(0.03f, 0.08f),
                 tone(30, 34) * k, tone(22, 28) * k, tone(0.65f, 0.95f), 1);
     }
 
@@ -1724,9 +1735,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             tmp.offset(0, drop);
             shadow.setColor(Ui.alpha(shadowColor, 1 - dk));
             shadows.draw(c, tmp, radius, SHADOW_BLUR * k, shadow);
-            scene.glass(c, r, radius, 0xFFFFFFFF, lightTint, 0, 0, 0.02f, 1, 1 - dk);
+            scene.glass(c, r, radius, glassTint(0xFFFFFFFF), lightTint, 0, 0, 0.02f, 1, 1 - dk);
         }
-        if (dk > 0.001f) scene.glass(c, r, radius, SMOKE, 0.4f, 0, 0, 0.02f, 1, dk);
+        if (dk > 0.001f) scene.glass(c, r, radius, glassTint(SMOKE), 0.4f, 0, 0, 0.02f, 1, dk);
     }
 
     private void drawerCard(Canvas c, RectF r) {
@@ -3270,7 +3281,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             tmp.offset(0, (6 + 8 * f) * k);
             shadow.setColor(Ui.alpha(0xFF000000, tone(0.1f, 0.3f) + tone(0.14f, 0.2f) * f));
             shadows.draw(c, tmp, rad, SHADOW_BLUR * k, shadow);
-            scene.liquid(c, cell, rad, tone(0xFFFFFFFF, SMOKE), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 12 * k, 8 * k,
+            scene.liquid(c, cell, rad, tone(glassTint(0xFFFFFFFF), glassTint(SMOKE)), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 12 * k, 8 * k,
                     tone(0.6f, 0.45f), 1 - f);
             if (f > 0.01f) {
                 fill.setShader(null);

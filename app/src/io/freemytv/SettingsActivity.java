@@ -807,7 +807,10 @@ public class SettingsActivity extends Activity {
 
         // MARK: - Home Settings and Remote Buttons
 
-        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
+        private static final String[] UNITS = {"auto", "C", "F"};
+        private static final String[] GLASS_THEMES = {"ocean", "aurora", "emerald", "amethyst", "sunset"};
+        // Short palette names work as proper names across the app's supported languages.
+        private static final String[] GLASS_THEME_NAMES = {"Ocean", "Aurora", "Emerald", "Amethyst", "Sunset"};
         /** Home Settings: language, temperature, theme, my photos, sounds, picks, watch from the screensaver, weather, city,
          *  forecast, now playing, quotes, one row per coin, then the TMDB key and updates (the last row). */
         private static final int PHOTOS_ROW = 3, PICKS_ROW = 5, SAVER_ROW = 6, WEATHER_ROW = 7, CITY_ROW = 8, FORECAST_ROW = 9,
@@ -865,6 +868,11 @@ public class SettingsActivity extends Activity {
             return new String[] {String.valueOf(Prefs.cards()), someServicesOff ? Ui.tr("services|Some") : Ui.tr("services|All")};
         }
 
+        private static String glassThemeName(String theme) {
+            int at = java.util.Arrays.asList(GLASS_THEMES).indexOf(theme);
+            return GLASS_THEME_NAMES[at < 0 ? 0 : at];
+        }
+
         private String[] settingValues() {
             String[] labels = settingLabels();
             String[] v = new String[labels.length];
@@ -872,8 +880,7 @@ public class SettingsActivity extends Activity {
             v[0] = lang.equals("auto") ? Ui.tr("Automatic") : Ui.languageName(lang);
             String unit = Prefs.temperature();
             v[1] = unit.equals("C") ? "°C" : unit.equals("F") ? "°F" : Ui.tr("unit|Automatic");
-            String theme = Prefs.theme();
-            v[2] = theme.equals("light") ? Ui.tr("Light") : theme.equals("dark") ? Ui.tr("Dark") : Ui.tr("Automatic");
+            v[2] = glassThemeName(Prefs.glassTheme());
             int photos = Photos.files(getContext()).size();
             v[PHOTOS_ROW] = photos == 0 ? Ui.tr("photos|None")
                     : Prefs.photos() ? Ui.plural("plural|one:{n} photo|other:{n} photos", photos) : Ui.tr("Off");
@@ -1156,9 +1163,8 @@ public class SettingsActivity extends Activity {
                     break;
                 }
                 case 2: {
-                    int at = java.util.Arrays.asList(THEMES).indexOf(Prefs.theme());
-                    Prefs.setTheme(THEMES[(at + dir + THEMES.length) % THEMES.length]);
-                    SleepOverlay.update(getContext());   // the pill's glass follows
+                    int at = java.util.Arrays.asList(GLASS_THEMES).indexOf(Prefs.glassTheme());
+                    Prefs.setGlassTheme(GLASS_THEMES[(at + dir + GLASS_THEMES.length) % GLASS_THEMES.length]);
                     break;
                 }
                 case PHOTOS_ROW:
